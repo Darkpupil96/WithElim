@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface ResultData {
   bookName: string;
@@ -71,7 +72,7 @@ const BibleApp: React.FC = () => {
 
   // 根据当前状态获取经文并更新结果
   const fetchAndDisplayResult = (): void => {
-    const apiUrl = `http://withelim.com:5000/api/bible?book=${selectedBook}&chapter=${selectedChapter}&v=${language}`;
+    const apiUrl = `https://withelim.com/api/bible?book=${selectedBook}&chapter=${selectedChapter}&v=${language}`;
     fetch(apiUrl)
       .then((response) => response.json())
       .then((data) => {
@@ -131,6 +132,12 @@ const BibleApp: React.FC = () => {
     } else {
       setSelectedChapter((currentChapter + 1).toString());
     }
+  };
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token"); // 清除 token
+    navigate("/login"); // 跳转到登录页
   };
 
   return (
@@ -235,6 +242,13 @@ const BibleApp: React.FC = () => {
         <button onClick={handleNextChapter}>
           {language === "t_cn" ? "下一章" : "Next Chapter"}
         </button>
+        
+        <button
+        onClick={handleLogout}
+        className="bg-red-500 text-white px-4 py-2 rounded"
+      >
+        退出登录
+      </button>
       </div>
     </div>
   );
