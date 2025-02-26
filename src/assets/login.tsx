@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import WithElimLogo from "../../public/WithElim.svg";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -69,6 +70,7 @@ export default function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
       <Card className="w-full max-w-md shadow-lg" >
+        <img src={WithElimLogo} alt="" />
         <CardHeader>
           <CardTitle>{isRegistering ? "注册" : "登录"}</CardTitle>
         </CardHeader>
