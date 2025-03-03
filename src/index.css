@@ -6,6 +6,7 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  padding:0;
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
@@ -51,13 +52,21 @@ button {
   transition: border-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  background-color: #388683;
+  color:#ffffff;
 }
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
+.navSelected:hover {
+  background-color: #e6e6e6;
 
+}
+.Selected:hover{
+  scale: 1.1;
+  background-color: #116965 !important;
+}
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

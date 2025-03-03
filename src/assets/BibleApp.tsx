@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import FriendList from "./FriendList.tsx";
+import { FaChevronLeft,FaChevronRight } from "react-icons/fa6";
+import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
+import WithElimLogo2 from "../../public/WithElimLogo2.png";
+
+
+interface VerseItem {
+  verse: number | string;
+  text: string;
+}
 
 interface ResultData {
   bookName: string;
@@ -7,7 +17,31 @@ interface ResultData {
   verses: string;
 }
 
+interface UserInfo {
+  id: number;
+  username: string;
+  email: string;
+  avatar: string;
+  language: string; // "t_kjv" 或 "t_cn"
+}
+
 const BibleApp: React.FC = () => {
+  // ==================【状态定义】==================
+  const navigate = useNavigate();
+
+  // 用户信息（登录后从 /api/auth/me 获取）
+  const [user, setUser] = useState<UserInfo | null>(null);
+
+  // 语言：默认英文（"t_kjv"），如果用户已登录并有 language，则用用户的 language
+  const [language, setLanguage] = useState<"t_kjv" | "t_cn">("t_kjv");
+
+  // 用于控制头像点击后设置弹窗是否显示
+  const [showSettingsMenu, setShowSettingsMenu] = useState<boolean>(false);
+
+  // 用于控制右下角朋友列表的展开/收起
+  const [showFriendList, setShowFriendList] = useState<boolean>(false);
+
+  // ==================【书卷和章节数据】==================
   // 英文书卷及章节数
   const booksAndChaptersEn: { [key: string]: number } = {
     "Genesis": 50, "Exodus": 40, "Leviticus": 27, "Numbers": 36,
@@ -50,12 +84,12 @@ const BibleApp: React.FC = () => {
     "约翰二书": 1, "约翰三书": 1, "犹大书": 1, "启示录": 22
   };
 
-  // 状态定义：语言、书卷（选项序号，从 "1" 开始）、章节、以及 API 返回的数据
-  const [language, setLanguage] = useState<string>("t_cn");
+  // 书卷、章节及经文内容状态
   const [selectedBook, setSelectedBook] = useState<string>("1");
   const [selectedChapter, setSelectedChapter] = useState<string>("1");
   const [resultData, setResultData] = useState<ResultData | null>(null);
 
+  // ==================【工具函数】==================
   // 数字转换成中文数字（仅支持 1-99）
   const convertToChineseNumeral = (num: number): string => {
     const numerals = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
@@ -70,26 +104,74 @@ const BibleApp: React.FC = () => {
     }
   };
 
-  // 根据当前状态获取经文并更新结果
+  // ==================【API 请求】==================
+  // 获取当前登录用户信息
+  const [userFetched, setUserFetched] = useState<boolean>(false);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const response = await fetch("https://withelim.com/api/auth/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data);
+        // 根据用户语言更新状态
+        if (data.language === "t_cn") {
+          setLanguage("t_cn");
+        } else {
+          setLanguage("t_kjv");
+        }
+        // 标记用户信息已经加载完成
+        setUserFetched(true);
+      }
+    } catch (error) {
+      console.error("获取用户信息失败:", error);
+    }
+  };
+  
+  useEffect(() => {
+    fetchCurrentUser();
+  }, []);
+  
+  useEffect(() => {
+    // 只有当用户信息加载完成后才调用获取经文的函数
+    if (userFetched) {
+      fetchAndDisplayResult();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userFetched, language, selectedBook, selectedChapter]);
+
+  // 获取经文
   const fetchAndDisplayResult = (): void => {
     const apiUrl = `https://withelim.com/api/bible?book=${selectedBook}&chapter=${selectedChapter}&v=${language}`;
     fetch(apiUrl)
       .then((response) => response.json())
       .then((data) => {
         // 拼接每节经文：[verse] text
-        const versesString: string = data.verses
-          .map((item: { verse: number | string; text: string }) => `[${item.verse}] ${item.text}`)
-          .join(" ");
+        const versesString = data.verses.map((item: VerseItem) => (
+          <p key={item.verse} style={{ textAlign: "left", width: "60%", paddingLeft: "20%" }}>
+            <span style={{ fontSize: "0.6rem" }}>[{item.verse}]</span> {item.text}
+          </p>
+        ));
+        
+
         // 根据当前语言获取书卷名称
         const booksMapping = language === "t_cn" ? booksAndChaptersCn : booksAndChaptersEn;
         const bookNames = Object.keys(booksMapping);
         const bookIndex = parseInt(selectedBook, 10) - 1;
         const selectedBookName = bookNames[bookIndex] || "";
+
         // 构造章节显示文本
         const chapterText =
           language === "t_cn"
             ? "第" + convertToChineseNumeral(parseInt(selectedChapter, 10)) + "章"
             : "Chapter " + selectedChapter;
+
         setResultData({
           bookName: selectedBookName,
           chapterText,
@@ -99,11 +181,80 @@ const BibleApp: React.FC = () => {
       .catch((error) => console.error("请求错误:", error));
   };
 
+  // ==================【副作用】==================
   useEffect(() => {
+    // 初次加载时先检查是否有登录用户
+    fetchCurrentUser();
+  }, []);
+
+  useEffect(() => {
+    // 每次 language / selectedBook / selectedChapter 改变时，刷新经文
     fetchAndDisplayResult();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language, selectedBook, selectedChapter]);
 
+  // ==================【事件处理】==================
+  // 切换到上一章
+  const handlePrevChapter = (): void => {
+    const currentChapter = parseInt(selectedChapter, 10);
+    if (currentChapter === 1) {
+      alert(language === "t_cn" ? "已经是第一章" : "Already at the first chapter");
+    } else {
+      setSelectedChapter((currentChapter - 1).toString());
+    }
+  };
+
+  // 切换到下一章
+  const handleNextChapter = (): void => {
+    const currentChapter = parseInt(selectedChapter, 10);
+    const booksMapping = language === "t_cn" ? booksAndChaptersCn : booksAndChaptersEn;
+    const bookNames = Object.keys(booksMapping);
+    const currentBookName = bookNames[parseInt(selectedBook, 10) - 1];
+    const maxChapter = booksMapping[currentBookName];
+    if (currentChapter >= maxChapter) {
+      alert(language === "t_cn" ? "已经是最后一章" : "Already at the last chapter");
+    } else {
+      setSelectedChapter((currentChapter + 1).toString());
+    }
+  };
+
+  // 退出登录
+  const handleLogout = () => {
+    localStorage.removeItem("token"); // 清除 token
+    setUser(null); // 清空用户信息
+    setLanguage(language); // 保留当前语言
+    navigate("/"); // 跳转到首页
+  };
+
+  // 切换语言（此处仅切换前端；若需保存到后端，则需调用 /api/auth/update）
+  const handleLanguageChange = (newLang: "t_cn" | "t_kjv") => {
+    setLanguage(newLang);
+
+    // 如果用户已登录，可在此发送请求更新用户的语言偏好
+    if (user) {
+      const token = localStorage.getItem("token");
+      fetch("https://withelim.com/api/auth/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...user,
+          language: newLang,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log(data);
+          // 这里也可以更新本地的 user 状态
+          setUser((prev) => (prev ? { ...prev, language: newLang } : null));
+        })
+        .catch((err) => console.error("更新语言失败", err));
+    }
+  };
+
+  // ==================【渲染逻辑】==================
   // 根据当前语言获取对应的书卷映射
   const booksMapping = language === "t_cn" ? booksAndChaptersCn : booksAndChaptersEn;
   const bookNames = Object.keys(booksMapping);
@@ -112,143 +263,364 @@ const BibleApp: React.FC = () => {
   const chaptersCount: number = booksMapping[bookNames[parseInt(selectedBook, 10) - 1]] || 0;
   const chapterOptions = Array.from({ length: chaptersCount }, (_, i) => i + 1);
 
-  // 切换到上一章的处理函数
-  const handlePrevChapter = (): void => {
-    const currentChapter = parseInt(selectedChapter, 10);
-    if (currentChapter === 1) {
-      alert(language === "t_cn" ? "已经是第一章" : "Already at first chapter");
-    } else {
-      setSelectedChapter((currentChapter - 1).toString());
-    }
-  };
-
-  // 切换到下一章的处理函数
-  const handleNextChapter = (): void => {
-    const currentChapter = parseInt(selectedChapter, 10);
-    const currentBookName = bookNames[parseInt(selectedBook, 10) - 1];
-    const maxChapter = booksMapping[currentBookName];
-    if (currentChapter >= maxChapter) {
-      alert(language === "t_cn" ? "已经是最后一章" : "Already at last chapter");
-    } else {
-      setSelectedChapter((currentChapter + 1).toString());
-    }
-  };
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.removeItem("token"); // 清除 token
-    navigate("/login"); // 跳转到登录页
-  };
-
+  // ==================【JSX】==================
   return (
-    <div style={{ fontFamily: "sans-serif", lineHeight: 1.6, margin: "20px" }}>
-      {/* 主标题 */}
-      <h2>{language === "t_cn" ? "以琳" : "WithElim"}</h2>
-      {/* 语言下拉框 */}
-      <label htmlFor="languageSelect">
-        {language === "t_cn" ? "语言：" : "Language:"}
-      </label>
-      <select
-        id="languageSelect"
-        value={language}
-        onChange={(e) => {
-          const newLang = e.target.value;
-          setLanguage(newLang);
-          // 切换语言时默认选中第一本书第一章
-          setSelectedBook("1");
-          setSelectedChapter("1");
-        }}
-      >
-        {language === "t_cn" ? (
-          <>
-            <option value="t_cn">中文</option>
-            <option value="t_kjv">英文</option>
-          </>
-        ) : (
-          <>
-            <option value="t_kjv">English</option>
-            <option value="t_cn">Chinese</option>
-          </>
-        )}
-      </select>
-      <br />
-      {/* 书卷下拉框 */}
-      <label htmlFor="bookSelect">
-        {language === "t_cn" ? "书卷：" : "Book:"}
-      </label>
-      <select
-        id="bookSelect"
-        value={selectedBook}
-        onChange={(e) => {
-          setSelectedBook(e.target.value);
-          // 书卷变化时重置章节为1
-          setSelectedChapter("1");
-        }}
-      >
-        {bookNames.map((bookName, index) => (
-          <option key={index} value={(index + 1).toString()}>
-            {bookName}
-          </option>
-        ))}
-      </select>
-      <br />
-      {/* 章节下拉框 */}
-      <label htmlFor="chapterSelect">
-        {language === "t_cn" ? "章节：" : "Chapter:"}
-      </label>
-      <select
-        id="chapterSelect"
-        value={selectedChapter}
-        onChange={(e) => setSelectedChapter(e.target.value)}
-      >
-        {chapterOptions.map((num) => (
-          <option key={num} value={num.toString()}>
-            {language === "t_cn"
-              ? "第" + convertToChineseNumeral(num) + "章"
-              : "Chapter " + num}
-          </option>
-        ))}
-      </select>
-      <br />
-      {/* 显示返回结果 */}
-      <div
-        id="result"
+    <div style={{ fontFamily: "sans-serif", lineHeight: 1.6, minHeight: "100vh",padding:"0 0 0 0" }} >
+      {/* 顶部导航栏 */}
+      <header 
         style={{
-          marginTop: "20px",
-          padding: "10px",
-          border: "1px solid #ccc",
-        }}
-      >
-        {resultData && (
-          <>
-            <h3>
-              {resultData.bookName}: {resultData.chapterText}
-            </h3>
-            <p>{resultData.verses}</p>
-          </>
-        )}
-      </div>
-      {/* 左右按钮切换章节 */}
-      <div
-        style={{
+          boxSizing: "border-box",
+          padding: "20px 0 0 0",
+          width: "100vw",
+          height:"auto",
           display: "flex",
-          justifyContent: "space-between",
-          marginTop: "10px",
+          flexDirection: "column",
+          justifyContent: "space-evenly",
+          alignItems: "center",
+          backgroundColor: "white",
+          position:"fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          borderBottom: "1px solid #ccc",
         }}
       >
-        <button onClick={handlePrevChapter}>
-          {language === "t_cn" ? "上一章" : "Previous Chapter"}
-        </button>
-        <button onClick={handleNextChapter}>
-          {language === "t_cn" ? "下一章" : "Next Chapter"}
-        </button>
+        {/* 左上角LOGO和名称 */}
+        <div style={{ 
+          width:"80%",
+          height:"50%", 
+          display: "flex", 
+          flexDirection:"row",
+          justifyContent: "space-between",
+          justifyItems:"center",
+          }}>
+        <div
+          style={{ cursor: "pointer", fontSize: "20px",fontWeight: "bold" }}
+        >
+                <img onClick={() => navigate("/")} src={WithElimLogo2} alt="WithElim" height="100px"/>
+        </div>
+
+        {/* 右上角头像及设置菜单 */}
+        <div style={{ position: "relative", height:"100%",top:"20px" }}>
+          <img 
+            src={
+              user?.avatar
+                ? user.avatar
+                : "https://withelim.com/media/default-avatar.png" // 默认头像
+            }
+            alt="avatar"
+            style={{
+              width: "50px",
+              height: "50px",
+              borderRadius: "50%",
+              cursor: "pointer",
+              zIndex: "999"
+            }}
+            onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+          />
+
+
+          {showSettingsMenu && (
+            <div // 点击空白处关闭设置菜单
+            onClick={() => {setShowSettingsMenu(false);console.log("clicked")}}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              zIndex: 955,
+              background: "transparent", // 或者半透明背景色
+            }}
+          >
+            
+            <div
+            onClick={(e) => e.stopPropagation()} // 阻止冒泡
+              style={{
+                position: "absolute",
+                top: "70px",
+                right: "13vw",
+                backgroundColor: "#fff",
+                border: "1px solid #ccc",
+                borderRadius: "5px",
+                width: "200px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                zIndex: 999,
+              }}
+            >
+              {/* 未登录状态 */}
+              {!user && (
+                <div style={{ padding: "10px", textAlign: "left" }}>
+                  {/* 语言切换 */}
+                  <div>
+                    <label style={{ fontWeight: "bold" }}>
+                      {language === "t_cn" ? "语言：" : "Language:"}
+                    </label>
+                    <select
+                      value={language}
+                      onChange={(e) =>{
+                        handleLanguageChange(e.target.value as "t_cn" | "t_kjv");
+                        setShowSettingsMenu(false);
+                      }
+                    }
+                      style={{ marginLeft: "5px" }}
+                    >
+                      <option value="t_kjv">English</option>
+                      <option value="t_cn">中文</option>
+                    </select>
+                  </div>
+                  <hr style={{ margin: "10px 0" }} />
+                  {/* Login 按钮 */}
+                  <div className="navSelected"
+                    style={{
+                      cursor: "pointer",
+                      color: "blue",
+                      textDecoration: "none",
+                      paddingLeft:"5px"
+                    }}
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      navigate("/login",{ state: { language } });
+                      
+                    }}
+                  >
+                    {language === "t_cn" ? "登录" : "Login"}
+                  </div>
+                </div>
+              )}
+
+              {/* 已登录状态 */}
+              {user && (
+                <div style={{ padding: "13px",textAlign: "left",lineHeight:"2rem" }}>
+                            <span style={{fontWeight:"bold",color:"#388683"}}>{user?.username}</span>
+                  <div>
+                    <label style={{ fontWeight: "bold" }}>
+                      {language === "t_cn" ? "语言：" : "Language:"}
+                    </label>
+                    <select
+                      value={language}
+                      onChange={(e) =>{
+                        handleLanguageChange(e.target.value as "t_cn" | "t_kjv");
+                        setShowSettingsMenu(false);
+                      }
+                      }
+                      style={{ marginLeft: "5px" }}
+                    >
+                      <option value="t_kjv">English</option>
+                      <option value="t_cn">中文</option>
+                    </select>
+                  </div>
+                  <hr style={{ margin: "10px 0" }} />
+
+                  <div className="navSelected"
+                    style={{
+                      cursor: "pointer",
+
+                      textDecoration: "none",
+                      marginBottom: "8px",
+                      paddingLeft:"5px"
+                    }}
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      navigate("/account-settings");
+                    }}
+                  >
+                    {language === "t_cn" ? "账户设置" : "Account Settings"}
+                  </div>
+                  <div className="navSelected"
+                    style={{
+                      cursor: "pointer",
+
+                      textDecoration: "none",
+                      marginBottom: "8px",
+                      paddingLeft:"5px"
+                    }}
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      navigate("/my-prayers");
+                    }}
+                  >
+                    {language === "t_cn" ? "我的祷告" : "My Prayers"}
+                  </div>
+                  <div className="navSelected"
+                    style={{ cursor: "pointer", color: "red", textDecoration: "none" ,paddingLeft:"5px"}}
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      handleLogout();
+                    }}
+                  >
+                    {language === "t_cn" ? "退出登录" : "Logout"}
+                  </div>
+                </div>
+              )}
+            </div>
+            </div>
+          )}
+        </div>
+        </div>
+        {/* 书卷下拉框 */}
+<div style={{ boxSizing:"border-box",height:"30%"}}>
+<label htmlFor="bookSelect">
+          {language === "t_cn" ? "书卷：" : "Book:"}
+        </label>
+        <select
+          id="bookSelect"
+          value={selectedBook}
+          onChange={(e) => {
+            setSelectedBook(e.target.value);
+            setSelectedChapter("1");
+          }}
+          style={{ margin: "0 10px 10px 5px" }}
+        >
+          {bookNames.map((bookName, index) => (
+            <option key={index} value={(index + 1).toString()}>
+              {bookName}
+            </option>
+          ))}
+        </select>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        {/* 章节下拉框 */}
+     
+        <label htmlFor="chapterSelect">
+          {language === "t_cn" ? "章节：" : "Chapter:"}
+        </label>
+        <select
+          id="chapterSelect"
+          value={selectedChapter}
+          onChange={(e) => setSelectedChapter(e.target.value)}
+          style={{ margin: "0 10px 10px 5px" }}
+        >
+          {chapterOptions.map((num) => (
+            <option key={num} value={num.toString()}>
+              {language === "t_cn"
+                ? "第" + convertToChineseNumeral(num) + "章"
+                : "Chapter " + num}
+            </option>
+          ))}
+        </select>
+        </div>
+
+      </header>
+
+      {/* 中间主体（圣经内容） */}
+      <main style={{ 
+        paddingTop:"140px", 
+        textAlign: "center",
         
-        <button
-        onClick={handleLogout}
-        className="bg-red-500 text-white px-4 py-2 rounded"
+        }}>
+        {/* 显示返回结果 */}
+        <div
+          id="result"
+          style={{
+            marginTop: "20px",
+            padding: "10px",
+
+          }}
+        >
+          {resultData && (
+            <>
+              <h3>
+                {resultData.bookName}: {resultData.chapterText}
+              </h3>
+              <div>{resultData.verses}</div>
+            </>
+          )}
+        </div>
+       
+      </main>
+ {/* 上一章 / 下一章 按钮 */}
+ <div style={{ display: "flex", position:"fixed",  zIndex: 1000,width:"80vw", justifyContent:"space-between",top: "50vh",left:"10vw" }}>
+          <button onClick={handlePrevChapter} style={{ marginRight: "10px",width:"50px",height:"50px",borderRadius:"50%",padding:"0 0 0 0" }}>
+        <FaChevronLeft/>
+          </button>
+          <button onClick={handleNextChapter} style={{ marginRight: "10px",width:"50px",height:"50px",borderRadius:"50%",padding:"0 0 0 0"  }}>
+          <FaChevronRight/>
+          </button>
+        </div>
+
+      {/* 右下角悬浮“朋友列表” */}
+      <div
+        style={{
+          position: "fixed",
+          right: "20px",
+          bottom: "20px",
+          zIndex: 1000,
+          textAlign: "right",
+        }}
       >
-        退出登录
-      </button>
+        {/* 气泡按钮 */}
+        <div className="Selected"
+          onClick={() => setShowFriendList(!showFriendList)}
+          style={{
+            width: "50px",
+            height: "50px",
+            borderRadius: "50%",
+            backgroundColor: "#388683",
+            color: "#fff",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          }}
+        >
+          <span style={{ fontSize: "24px" }}><IoChatbubbleEllipsesOutline/></span>
+        </div>
+
+        {/* 朋友列表展开 */}
+        {showFriendList && (
+  <div
+    style={{
+      position: "absolute",
+      right: 0,
+      bottom: "70px",
+      width: "200px",
+      maxHeight: "300px",
+      overflowY: "auto",
+      backgroundColor: "#fff",
+      border: "1px solid #ccc",
+      borderRadius: "5px",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+      padding: "10px",
+    }}
+  >
+    {!user ? (
+      <div style={{ color: "#999" }} >
+       <div>
+  {language === "t_cn" ? (
+    <>
+      请先
+      <span
+        style={{ color: "blue", cursor: "pointer", marginLeft: "4px" }}
+        onClick={() => navigate("/login",{ state: { language } })}
+      >
+        登录
+      </span>
+    </>
+  ) : (
+    <>
+      Please
+      <span
+        style={{ color: "blue", cursor: "pointer", marginLeft: "4px" }}
+        onClick={() => navigate("/login", { state: { language } })}
+      >
+        log in
+      </span>
+    </>
+  )}
+</div>
+      </div>
+    ) : (
+      <>
+        <h4 style={{ marginTop: 0 }}>
+          {language === "t_cn" ? "朋友列表" : "Friend List"}
+        </h4>
+        <FriendList user={user}/>
+      </>
+    )}
+  </div>
+)}
       </div>
     </div>
   );

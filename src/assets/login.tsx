@@ -1,10 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState} from "react";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+
 import axios from "axios";
+
+// 你本地的 SVG logo，假设在 public 目录或 assets 目录
 import WithElimLogo from "../../public/WithElim.svg";
+
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+
+// 用来声明接收的props类型
+
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -15,18 +23,16 @@ export default function AuthPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      navigate("/");
-    }
-  }, [navigate]);
+  const location = useLocation();
+  const language = location.state?.language || "t_kjv";
+
 
   const API_URL = "https://withelim.com/api";
 
+  // ==================【事件处理】==================
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      setError("邮箱和密码不能为空");
+      setError(language === "t_cn" ? "邮箱和密码不能为空" : "Email and password cannot be empty.");
       return;
     }
     setLoading(true);
@@ -39,7 +45,7 @@ export default function AuthPage() {
       localStorage.setItem("token", response.data.token);
       navigate("/");
     } catch (err: any) {
-      setError(err.response?.data?.error || "登录失败");
+      setError(err.response?.data?.error || (language === "t_cn" ? "登录失败" : "Login failed"));
     } finally {
       setLoading(false);
     }
@@ -47,7 +53,7 @@ export default function AuthPage() {
 
   const handleRegister = async () => {
     if (!username.trim() || !email.trim() || !password.trim()) {
-      setError("所有字段都必须填写");
+      setError(language === "t_cn" ? "所有字段都必须填写" : "All fields are required.");
       return;
     }
     setLoading(true);
@@ -58,86 +64,136 @@ export default function AuthPage() {
         email,
         password,
       });
-      alert("注册成功，请登录");
+      alert(language === "t_cn" ? "注册成功，请登录" : "Registration successful. Please log in.");
       setIsRegistering(false);
     } catch (err: any) {
-      setError(err.response?.data?.error || "注册失败");
+      setError(err.response?.data?.error || (language === "t_cn" ? "注册失败" : "Registration failed"));
     } finally {
       setLoading(false);
     }
   };
 
+  // ==================【渲染】==================
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-      <Card className="w-full max-w-md shadow-lg" >
-        <img src={WithElimLogo} alt="" />
+      <Card className="w-full max-w-md shadow-lg">
+        {/* Logo */}
+        <img src={WithElimLogo} alt="WithElim" />
         <CardHeader>
-          <CardTitle>{isRegistering ? "注册" : "登录"}</CardTitle>
+          <p></p>
+          <p></p>
+          <CardTitle>
+            {isRegistering
+              ? language === "t_cn" ? "注册" : "Register"
+              : language === "t_cn" ? "登录" : "Login"}
+          </CardTitle>
         </CardHeader>
+
         <CardContent>
           {isRegistering ? (
             <>
+              {/* 用户名 */}
               <Input
-                placeholder="用户名"
+                placeholder={language === "t_cn" ? "用户名" : "Username"}
                 value={username}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
                 className="mb-2"
               />
               <br />
               <br />
+              {/* 邮箱 */}
               <Input
                 type="email"
-                placeholder="邮箱"
+                placeholder={language === "t_cn" ? "邮箱" : "Email"}
                 value={email}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 className="mb-2"
               />
               <br />
               <br />
+              {/* 密码 */}
               <Input
                 type="password"
-                placeholder="密码"
+                placeholder={language === "t_cn" ? "密码" : "Password"}
                 value={password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 className="mb-4"
               />
+
+              {/* 错误提示 */}
               {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-                <br />
-                <br />
+              <br />
+              <br />
+
+              {/* 注册按钮 */}
               <Button onClick={handleRegister} disabled={loading} className="w-full">
-                {loading ? "注册中..." : "注册"}
+                {loading
+                  ? language === "t_cn" ? "注册中..." : "Registering..."
+                  : language === "t_cn" ? "注册" : "Register"}
               </Button>
+
               <p className="text-center mt-4 text-sm">
-                已有账号？<span className="text-blue-500 cursor-pointer" onClick={() => setIsRegistering(false)}>登录</span>
+                {language === "t_cn" ? "已有账号？" : "Already have an account?"}{" "}
+                <span
+                  style={{ color: "#3b82f6", cursor: "pointer" }}
+                  className="text-blue-500 cursor-pointer"
+                  onClick={() => setIsRegistering(false)}
+                >
+                  {language === "t_cn" ? "登录" : "Login"}
+                </span>
               </p>
             </>
           ) : (
             <>
+              {/* 邮箱 */}
               <Input
                 type="email"
-                placeholder="邮箱"
+                placeholder={language === "t_cn" ? "邮箱" : "Email"}
                 value={email}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 className="mb-2"
               />
               <br />
               <br />
-              
+              {/* 密码 */}
               <Input
                 type="password"
-                placeholder="密码"
+                placeholder={language === "t_cn" ? "密码" : "Password"}
                 value={password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 className="mb-4"
               />
+
+              {/* 错误提示 */}
               {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
               <br />
               <br />
+
+              {/* 登录按钮 */}
               <Button onClick={handleLogin} disabled={loading} className="w-full">
-                {loading ? "登录中..." : "登录"}
+                {loading
+                  ? language === "t_cn" ? "登录中..." : "Logging in..."
+                  : language === "t_cn" ? "登录" : "Login"}
               </Button>
+
               <p className="text-center mt-4 text-sm">
-                还没有账号？<span className="text-blue-500 cursor-pointer" onClick={() => setIsRegistering(true)}>请注册</span>
+                {language === "t_cn" ? "还没有账号？" : "Don't have an account?"}{" "}
+                <span
+                  style={{ color: "#3b82f6", cursor: "pointer" }}
+                  className="text-blue-500 cursor-pointer"
+                  onClick={() => setIsRegistering(true)}
+                >
+                  {language === "t_cn" ? "请注册" : "Register"}
+                </span>
+              </p>
+              <p className="text-center mt-4 text-sm">
+                <span
+                  style={{ color: "#3b82f6", cursor: "pointer" }}
+                  className="text-blue-500 cursor-pointer"
+                  onClick={() => navigate("/")}
+                >
+                  {language === "t_cn" ? "游客模式" : "Guest mode"}
+                </span>
               </p>
             </>
           )}
