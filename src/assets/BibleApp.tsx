@@ -24,7 +24,18 @@ interface UserInfo {
   avatar: string;
   language: string; // "t_kjv" 或 "t_cn"
 }
+//窗口检测宽度
+function useWindowWidth() {
+  const [width, setWidth] = useState(window.innerWidth);
 
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return width;
+}
 const BibleApp: React.FC = () => {
   // ==================【状态定义】==================
   const navigate = useNavigate();
@@ -263,6 +274,9 @@ const BibleApp: React.FC = () => {
   const chaptersCount: number = booksMapping[bookNames[parseInt(selectedBook, 10) - 1]] || 0;
   const chapterOptions = Array.from({ length: chaptersCount }, (_, i) => i + 1);
 
+  //
+  const windowWidth = useWindowWidth();
+
   // ==================【JSX】==================
   return (
     <div style={{ fontFamily: "sans-serif", lineHeight: 1.6, minHeight: "100vh",padding:"0 0 0 0" }} >
@@ -293,16 +307,36 @@ const BibleApp: React.FC = () => {
           display: "flex", 
           flexDirection:"row",
           justifyContent: "space-between",
-          justifyItems:"center",
+          justifyItems:"center"
           }}>
         <div
           style={{ cursor: "pointer", fontSize: "20px",fontWeight: "bold" }}
         >
                 <img onClick={() => navigate("/")} src={WithElimLogo2} alt="WithElim" height="100px"/>
         </div>
+        {!user&&  (windowWidth >= 1638)&&// 未登录状态
 
+(<div style={{display: "flex", flexDirection: "row",justifyContent: "space-between",width:"170px",height:"5%",position:"fixed",right:"10vw",paddingTop:"24px" }}> 
+<button
+  onClick={() =>
+    navigate("/login", { state: { isRegistering: false,language } })
+  }
+>
+  {language === "t_cn" ? "登录":"Login"}
+  </button>
+ &nbsp;&nbsp;&nbsp;&nbsp;
+ <button
+  onClick={() =>
+    navigate("/login", { state: { isRegistering: true,language  } })
+  }
+>
+  {language === "t_cn" ? "注册":"Register"}</button>
+ </div>
+)
+ }
         {/* 右上角头像及设置菜单 */}
-        <div style={{ position: "relative", height:"100%",top:"20px" }}>
+        <div style={{ position: "fixed", height:"100%",top:"40px",right:"70px" }}>
+          
           <img 
             src={
               user?.avatar
@@ -339,8 +373,8 @@ const BibleApp: React.FC = () => {
             onClick={(e) => e.stopPropagation()} // 阻止冒泡
               style={{
                 position: "absolute",
-                top: "70px",
-                right: "13vw",
+                top: "93px",
+                right: "30px",
                 backgroundColor: "#fff",
                 border: "1px solid #ccc",
                 borderRadius: "5px",
@@ -530,7 +564,17 @@ const BibleApp: React.FC = () => {
        
       </main>
  {/* 上一章 / 下一章 按钮 */}
- <div style={{ display: "flex", position:"fixed",  zIndex: 1000,width:"80vw", justifyContent:"space-between",top: "50vh",left:"10vw" }}>
+ <div
+  style={{
+    display: "flex",
+    position: "fixed",
+    zIndex: 1000,
+    width: windowWidth < 1000 ? "90vw" : "60vw",
+    justifyContent: "space-between",
+    top: "50vh",
+    left: windowWidth < 1000 ? "5vw" : "20vw",
+  }}
+>
           <button onClick={handlePrevChapter} style={{ marginRight: "10px",width:"50px",height:"50px",borderRadius:"50%",padding:"0 0 0 0" }}>
         <FaChevronLeft/>
           </button>
@@ -545,8 +589,8 @@ const BibleApp: React.FC = () => {
           position: "fixed",
           right: "20px",
           bottom: "20px",
-          zIndex: 1000,
-          textAlign: "right",
+          zIndex: 1001,
+          textAlign: "left",
         }}
       >
         {/* 气泡按钮 */}
@@ -570,12 +614,27 @@ const BibleApp: React.FC = () => {
 
         {/* 朋友列表展开 */}
         {showFriendList && (
-  <div
+           <div
+           onClick={() => {
+             setShowFriendList(false);
+           }}
+           style={{
+             position: "fixed",
+             top: 0,
+             left: 0,
+             width: "100vw",
+             height: "100vh",
+             zIndex: 955,
+             background: "transparent", // 或半透明背景色
+           }}
+         >
+         
+  <div  onClick={(e) => e.stopPropagation()} // 阻止冒泡
     style={{
       position: "absolute",
-      right: 0,
-      bottom: "70px",
-      width: "200px",
+      right: "50px",
+      bottom: "80px",
+      width: "150px",
       maxHeight: "300px",
       overflowY: "auto",
       backgroundColor: "#fff",
@@ -613,12 +672,13 @@ const BibleApp: React.FC = () => {
       </div>
     ) : (
       <>
-        <h4 style={{ marginTop: 0 }}>
+        <h4 style={{ marginTop: 0, textAlign: "left" }}>
           {language === "t_cn" ? "朋友列表" : "Friend List"}
         </h4>
         <FriendList user={user}/>
       </>
     )}
+  </div>
   </div>
 )}
       </div>

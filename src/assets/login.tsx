@@ -1,4 +1,4 @@
-import { useState} from "react";
+import { useState,useEffect} from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 
@@ -20,7 +20,6 @@ export default function AuthPage() {
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
   const navigate = useNavigate();
 
   const location = useLocation();
@@ -28,7 +27,17 @@ export default function AuthPage() {
 
 
   const API_URL = "https://withelim.com/api";
+// 使用 location.state 来初始化 isRegistering，如果没有传值，则默认 false
+const [isRegistering, setIsRegistering] = useState(
+  location.state?.isRegistering || false
+);
 
+// 如果 location.state 变化，也更新 isRegistering
+useEffect(() => {
+  if (location.state?.isRegistering !== undefined) {
+    setIsRegistering(location.state.isRegistering);
+  }
+}, [location.state]);
   // ==================【事件处理】==================
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -83,9 +92,7 @@ export default function AuthPage() {
           <p></p>
           <p></p>
           <CardTitle>
-            {isRegistering
-              ? language === "t_cn" ? "注册" : "Register"
-              : language === "t_cn" ? "登录" : "Login"}
+          {language === "t_cn" ? "以琳" : "WithElim"}
           </CardTitle>
         </CardHeader>
 
@@ -140,6 +147,15 @@ export default function AuthPage() {
                   onClick={() => setIsRegistering(false)}
                 >
                   {language === "t_cn" ? "登录" : "Login"}
+                </span>
+              </p>
+              <p className="text-center mt-4 text-sm">
+                <span
+                  style={{ color: "#3b82f6", cursor: "pointer" }}
+                  className="text-blue-500 cursor-pointer"
+                  onClick={() => navigate("/")}
+                >
+                  {language === "t_cn" ? "游客模式" : "Guest mode"}
                 </span>
               </p>
             </>

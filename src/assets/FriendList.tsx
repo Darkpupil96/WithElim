@@ -39,7 +39,7 @@ const FriendList: React.FC<{ user: any }> = ({ user }) => {
   };
 
   return (
-    <ul style={{ listStyle: "none", paddingLeft: 0, margin: 0 }}>
+    <ul style={{ listStyle: "none", paddingLeft: 0, margin: 0,textAlign: "left" }}>
       {friends.map((friend) => (
         <li key={friend.id} style={{ marginTop: "5px" }}>
           <img
