@@ -131,6 +131,11 @@ const BibleApp: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         setUser(data);
+        // 根据用户阅读记录自动更新选中的书卷和章节
+        if (data.reading_book && data.reading_chapter) {
+          setSelectedBook(data.reading_book.toString());
+          setSelectedChapter(data.reading_chapter.toString());
+        }
         // 根据用户语言更新状态
         if (data.language === "t_cn") {
           setLanguage("t_cn");
@@ -145,6 +150,7 @@ const BibleApp: React.FC = () => {
     }
   };
   
+  
   useEffect(() => {
     fetchCurrentUser();
   }, []);
@@ -156,7 +162,37 @@ const BibleApp: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userFetched, language, selectedBook, selectedChapter]);
-
+  useEffect(() => {
+    // 只有在用户已登录且用户信息加载完成时才更新阅读记录
+    if (user && user.id) {
+      // 构造更新阅读记录的 API URL
+      const updateUrl = `https://withelim.com/api/auth/update-reading`;
+      const token = localStorage.getItem("token");
+  
+      // 构造请求体：当前选中的书卷和章节
+      const payload = {
+        reading_book: parseInt(selectedBook, 10),
+        reading_chapter: parseInt(selectedChapter, 10),
+      };
+  
+      fetch(updateUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("阅读进度更新成功:", data);
+        })
+        .catch((err) => {
+          console.error("更新阅读进度失败:", err);
+        });
+    }
+    // 依赖项包括 user、selectedBook 和 selectedChapter
+  }, [user, selectedBook, selectedChapter]);
   // 获取经文
   const fetchAndDisplayResult = (): void => {
     const apiUrl = `https://withelim.com/api/bible?book=${selectedBook}&chapter=${selectedChapter}&v=${language}`;
@@ -568,7 +604,7 @@ const BibleApp: React.FC = () => {
   style={{
     display: "flex",
     position: "fixed",
-    zIndex: 1000,
+    zIndex: 988,
     width: windowWidth < 1000 ? "90vw" : "60vw",
     justifyContent: "space-between",
     top: "50vh",
