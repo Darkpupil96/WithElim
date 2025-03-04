@@ -204,8 +204,8 @@ const AccountSettings: React.FC = () => {
               <div
                 style={{
                   position: "relative",
-                  width: "80px",
-                  height: "80px",
+                  width: "100px",
+                  aspectRatio: "1 / 1",
                   borderRadius: "50%",
                   marginRight: "20px",
                   overflow: "hidden",
@@ -281,7 +281,7 @@ const AccountSettings: React.FC = () => {
               </select>
               <button 
               className="submitButton"
-              onClick={handleProfileUpdate} style={{width: "120px",position:"relative",left:"130px",top:"-6px"}}>
+              onClick={handleProfileUpdate} style={{width: "120px",position:"relative",left:"60px",top:"-8px"}}>
                 {language === "t_cn" ? "更新资料" : "Update"}
               </button>
             </div>
