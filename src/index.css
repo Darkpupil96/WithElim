@@ -71,6 +71,15 @@ button:focus-visible {
   scale: 1.1;
   background-color: #116965 !important;
 }
+
+.submitButton{
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+.submitButton:hover{
+  background-color: #116965;
+  color: #ffffff;
+}
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

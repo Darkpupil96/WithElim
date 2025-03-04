@@ -520,7 +520,7 @@ const BibleApp: React.FC = () => {
                       handleLogout();
                     }}
                   >
-                    {language === "t_cn" ? "退出登录" : "Logout"}
+                    {language === "t_cn" ? "退出登录" : "Sign out"}
                   </div>
                 </div>
               )}
