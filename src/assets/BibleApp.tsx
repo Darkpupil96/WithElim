@@ -6,6 +6,7 @@ import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
 import WithElimLogo2 from "../../public/WithElimLogo2.png";
 
 
+
 interface VerseItem {
   verse: number | string;
   text: string;
@@ -39,6 +40,7 @@ function useWindowWidth() {
 const BibleApp: React.FC = () => {
   // ==================【状态定义】==================
   const navigate = useNavigate();
+  //更改verses
 
   // 用户信息（登录后从 /api/auth/me 获取）
   const [user, setUser] = useState<UserInfo | null>(null);
@@ -151,9 +153,7 @@ const BibleApp: React.FC = () => {
   };
   
   
-  useEffect(() => {
-    fetchCurrentUser();
-  }, []);
+
   
   useEffect(() => {
     // 只有当用户信息加载完成后才调用获取经文的函数
@@ -201,8 +201,11 @@ const BibleApp: React.FC = () => {
       .then((data) => {
         // 拼接每节经文：[verse] text
         const versesString = data.verses.map((item: VerseItem) => (
-          <p key={item.verse} style={{ textAlign: "left", width: "60%", paddingLeft: "20%" }}>
-            <span style={{ fontSize: "0.6rem" }}>[{item.verse}]</span> {item.text}
+          <p 
+          key={item.verse} 
+          onClick={() => handleVerseClick(item)}
+          style={{ textAlign: "left", width: "60%", paddingLeft: "20%",zIndex: 950,cursor:"pointer" }}>
+            <span style={{ fontSize: "0.6rem" }}>[{item.verse}]</span> <span className="prayerVerse">{item.text}</span>
           </p>
         ));
         
@@ -228,6 +231,72 @@ const BibleApp: React.FC = () => {
       .catch((error) => console.error("请求错误:", error));
   };
 
+
+//prayer 提交
+
+  // Prayer 状态
+  const [prayerOpen, setPrayerOpen] = useState<boolean>(false);
+// 在组件最上方添加状态变量
+const [isPrivate, setIsPrivate] = useState<boolean>(false);
+
+  const [prayerTitle, setPrayerTitle] = useState<string>("");
+  const [prayerText, setPrayerText] = useState<string>("");
+  const [selectedVerse, setSelectedVerse] = useState<number | string | null>(null);
+  const [selectedText, setSelectedText] = useState<string | null>(null);
+  // 点击 verse 时打开 prayer 弹窗
+  const handleVerseClick = (Item:VerseItem) => {
+    if (!user) {
+      alert(language === "t_cn" ? "请先登录后再提交祷告。" : "Please log in before submitting a prayer.");
+      return;
+    }
+
+    setSelectedVerse(Item.verse);
+    setSelectedText(Item.text);
+    setPrayerTitle("");
+    setPrayerText("");
+    setPrayerOpen(true);
+  };
+
+  // 提交 prayer 到 API
+  const handlePrayerSubmit = async () => {
+    if (!user || !selectedVerse || !prayerTitle.trim() || !prayerText.trim()) return;
+    try {
+      const payload = {
+        title: prayerTitle,
+        content: prayerText,
+        is_private: false,
+        verses: [
+          {
+            version: language,
+            b: parseInt(selectedBook, 10),
+            c: parseInt(selectedChapter, 10),
+            v: parseInt(selectedVerse.toString(), 10),
+          },
+        ],
+      };
+      const response = await fetch("https://withelim.com/api/prayers/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (response.ok) {
+        alert(language === "t_cn" ? "祷告已提交！" : "Prayer submitted successfully!");
+        setPrayerOpen(false);
+        setPrayerTitle("");
+        setPrayerText("");
+      } else {
+        alert(language === "t_cn" ? "提交失败，请重试。" : "Submission failed, please try again.");
+      }
+    } catch (error) {
+      console.error("提交祷告失败:", error);
+      alert(language === "t_cn" ? "网络错误，请稍后再试。" : "Network error, please try again later.");
+    }
+  };
+
+  
   // ==================【副作用】==================
   useEffect(() => {
     // 初次加载时先检查是否有登录用户
@@ -244,8 +313,24 @@ const BibleApp: React.FC = () => {
   // 切换到上一章
   const handlePrevChapter = (): void => {
     const currentChapter = parseInt(selectedChapter, 10);
+    // 当前书卷号是 1-indexed，转换为 0-indexed
+    const currentBookIndex = parseInt(selectedBook, 10) - 1;
+    // 根据当前语言获取对应的书卷和章节映射
+    const booksMapping = language === "t_cn" ? booksAndChaptersCn : booksAndChaptersEn;
+    const bookNames = Object.keys(booksMapping);
+  
     if (currentChapter === 1) {
-      alert(language === "t_cn" ? "已经是第一章" : "Already at the first chapter");
+      if (currentBookIndex === 0) {
+        alert(language === "t_cn" ? "已经是第一章" : "Already at the first chapter");
+      } else {
+        // 退到上一本：上一本的索引为 currentBookIndex - 1
+        const newBookIndex = currentBookIndex - 1;
+        // 获取上一书卷的章节数作为最后一章
+        const lastChapter = booksMapping[bookNames[newBookIndex]];
+        // 更新状态：书卷和章节
+        setSelectedBook((newBookIndex + 1).toString());
+        setSelectedChapter(lastChapter.toString());
+      }
     } else {
       setSelectedChapter((currentChapter - 1).toString());
     }
@@ -259,7 +344,12 @@ const BibleApp: React.FC = () => {
     const currentBookName = bookNames[parseInt(selectedBook, 10) - 1];
     const maxChapter = booksMapping[currentBookName];
     if (currentChapter >= maxChapter) {
-      alert(language === "t_cn" ? "已经是最后一章" : "Already at the last chapter");
+      if (currentBookName === bookNames[bookNames.length - 1]){ alert(language === "t_cn" ? "已经是最后一章" : "Already at the last chapter");}
+      else {
+        setSelectedBook((parseInt(selectedBook, 10) + 1).toString());
+        setSelectedChapter("1");
+      }
+     
     } else {
       setSelectedChapter((currentChapter + 1).toString());
     }
@@ -346,7 +436,7 @@ const BibleApp: React.FC = () => {
           justifyItems:"center"
           }}>
         <div
-          style={{ cursor: "pointer", fontSize: "20px",fontWeight: "bold" }}
+          style={{ cursor: "pointer", fontSize: "20px",fontWeight: "bold",height:"auto" }}
         >
                 <img onClick={() => navigate("/")} src={WithElimLogo2} alt="WithElim" height="100px"/>
         </div>
@@ -371,7 +461,7 @@ const BibleApp: React.FC = () => {
 )
  }
         {/* 右上角头像及设置菜单 */}
-        <div style={{ position: "fixed", height:"100%",top:"40px",right:"70px" }}>
+        <div style={{ position: "fixed", height:"auto",top:"40px",right:"70px" }}>
           
           <img 
             src={
@@ -493,7 +583,7 @@ const BibleApp: React.FC = () => {
                     }}
                     onClick={() => {
                       setShowSettingsMenu(false);
-                      navigate("/account-settings");
+                      navigate("/account-settings",{ state: { language } });
                     }}
                   >
                     {language === "t_cn" ? "账户设置" : "Account Settings"}
@@ -579,6 +669,78 @@ const BibleApp: React.FC = () => {
         textAlign: "center",
         
         }}>
+        {/* Prayer 弹窗 */}
+      {prayerOpen && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            background: "white",
+            padding: "20px",
+            boxShadow: "0px 0px 10px rgba(0,0,0,0.1)",
+            zIndex: 1000,
+            width: "90%",
+            maxWidth: "400px",
+          }}
+        >
+          
+          <h4>{language === "t_cn" ? "写下你的祷告" : "Write your prayer"}</h4>
+          <p>
+            {language === "t_cn"
+              ? `${Object.keys(booksAndChaptersCn)[parseInt(selectedBook, 10) - 1]} 经文: 第 ${selectedChapter} 章 - 第 ${selectedVerse} 节`
+              : `${Object.keys(booksAndChaptersEn)[parseInt(selectedBook, 10) - 1]} Verse: Chapter ${selectedChapter}, Verse ${selectedVerse}`}
+          </p>
+          <p>{`${selectedText}`}</p>
+          {/* 新增：祷告标题输入 */}
+          <input
+            type="text"
+            value={prayerTitle}
+            onChange={(e) => setPrayerTitle(e.target.value)}
+            placeholder={language === "t_cn" ? "祷告标题" : "Prayer Title"}
+            style={{ width: "100%", marginBottom: "10px" }}
+          />
+          {/* 新增：可见性设置 */}
+    <div style={{ marginBottom: "10px", textAlign: "left" }}>
+      <label>{language === "t_cn" ? "可见性：" : "Visibility:"}</label>
+      <label style={{ marginLeft: "10px" }}>
+        <input
+          type="radio"
+          name="visibility"
+          checked={!isPrivate}
+          onChange={() => setIsPrivate(false)}
+        />
+        {language === "t_cn" ? "公开" : "Public"}
+      </label>
+      <label style={{ marginLeft: "10px" }}>
+        <input
+          type="radio"
+          name="visibility"
+          checked={isPrivate}
+          onChange={() => setIsPrivate(true)}
+        />
+        {language === "t_cn" ? "私密" : "Private"}
+      </label>
+    </div>
+          <textarea
+            value={prayerText}
+            onChange={(e) => setPrayerText(e.target.value)}
+            rows={4}
+            style={{ width: "100%", marginBottom: "10px" }}
+            placeholder={language === "t_cn" ? "请输入你的祷告内容" : "Enter your prayer here"}
+          ></textarea>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <button onClick={() => setPrayerOpen(false)}>
+              {language === "t_cn" ? "取消" : "Cancel"}
+            </button>
+            <button onClick={handlePrayerSubmit}>
+              {language === "t_cn" ? "提交" : "Submit"}
+            </button>
+          </div>
+        </div>
+      )}
+
         {/* 显示返回结果 */}
         <div
           id="result"
@@ -600,24 +762,24 @@ const BibleApp: React.FC = () => {
        
       </main>
  {/* 上一章 / 下一章 按钮 */}
- <div
-  style={{
-    display: "flex",
-    position: "fixed",
-    zIndex: 988,
-    width: windowWidth < 1000 ? "90vw" : "60vw",
-    justifyContent: "space-between",
-    top: "50vh",
-    left: windowWidth < 1000 ? "5vw" : "20vw",
-  }}
->
-          <button onClick={handlePrevChapter} style={{ marginRight: "10px",width:"50px",height:"50px",borderRadius:"50%",padding:"0 0 0 0" }}>
+
+          <button onClick={handlePrevChapter} style={{ 
+            position: "fixed",
+            bottom: "50vh",
+            left:windowWidth<1596?"5vw":"20vw",
+            zIndex: 980,
+            marginRight: "10px",width:"50px",height:"50px",borderRadius:"50%",padding:"0 0 0 0" }}>
         <FaChevronLeft/>
           </button>
-          <button onClick={handleNextChapter} style={{ marginRight: "10px",width:"50px",height:"50px",borderRadius:"50%",padding:"0 0 0 0"  }}>
+          <button onClick={handleNextChapter} style={{ 
+                        position: "fixed",
+                        bottom: "50vh",
+                        right:windowWidth<1596?"5vw":"20vw",
+                        zIndex: 999,
+            marginRight: "10px",width:"50px",height:"50px",borderRadius:"50%",padding:"0 0 0 0"  }}>
           <FaChevronRight/>
           </button>
-        </div>
+
 
       {/* 右下角悬浮“朋友列表” */}
       <div

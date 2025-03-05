@@ -22,18 +22,24 @@ const AccountSettings: React.FC = () => {
   const [user, setUser] = useState<UserInfo | null>(null);
   // 表单：更新用户名
   const [username, setUsername] = useState<string>("");
-  // 表单：更新语言
+  // 表单：更新邮箱（新增）
+  const [email, setEmail] = useState<string>("");
+  // 表单：更新语言（保留 Header 语言切换）
   const [language, setLanguage] = useState<"t_cn" | "t_kjv">("t_kjv");
   // 控制头像悬停状态
   const [avatarHover, setAvatarHover] = useState<boolean>(false);
-
   // 更新提示消息状态
   const [updateMessage, setUpdateMessage] = useState<string>("");
   const [showMessage, setShowMessage] = useState<boolean>(false);
+  // 新增加载状态
+  const [loading, setLoading] = useState<boolean>(true);
 
   // 获取用户信息
   const fetchUser = async () => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     try {
       const response = await fetch("https://withelim.com/api/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
@@ -42,10 +48,13 @@ const AccountSettings: React.FC = () => {
         const data = await response.json();
         setUser(data);
         setUsername(data.username);
+        setEmail(data.email);
         setLanguage(data.language);
       }
     } catch (error) {
       console.error("获取用户信息失败:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,7 +78,6 @@ const AccountSettings: React.FC = () => {
         const data = await response.json();
         if (data.user) {
           setUser(data.user);
-          // 显示更新提示
           setUpdateMessage(
             language === "t_cn"
               ? "你已成功更改信息"
@@ -84,11 +92,11 @@ const AccountSettings: React.FC = () => {
     }
   };
 
-  // 更新用户名 & 语言
+  // 更新用户名 & 邮箱
   const handleProfileUpdate = async () => {
-    if (!username) return;
+    if (!username || !email) return;
     try {
-      const payload = { username, language };
+      const payload = { username, email };
       const response = await fetch("https://withelim.com/api/auth/update", {
         method: "POST",
         headers: {
@@ -100,7 +108,6 @@ const AccountSettings: React.FC = () => {
       const data = await response.json();
       console.log("Profile updated", data);
       fetchUser();
-      // 显示更新提示
       setUpdateMessage(
         language === "t_cn"
           ? "你已成功更改信息"
@@ -113,7 +120,6 @@ const AccountSettings: React.FC = () => {
     }
   };
 
-  // Header 中的语言切换回调
   const handleHeaderLanguageChange = (newLang: "t_cn" | "t_kjv") => {
     setLanguage(newLang);
     if (user) {
@@ -129,7 +135,10 @@ const AccountSettings: React.FC = () => {
         .then((res) => res.json())
         .then((data) => {
           console.log("Language updated via header", data);
-          fetchUser();
+          // 如果后端返回更新后的用户数据，则更新本地状态
+          if (data.user) {
+            setUser(data.user);
+          }
         })
         .catch((err) => console.error("更新语言失败", err));
     }
@@ -156,33 +165,38 @@ const AccountSettings: React.FC = () => {
     zIndex: 2000,
   };
 
+  if (loading) {
+    return (
+      <div style={{ fontFamily: "sans-serif", padding: "20px", textAlign: "center" }}>
+        {language === "t_cn" ? "加载中..." : "Loading..."}
+      </div>
+    );
+  }
+
   return (
     <div style={{ fontFamily: "sans-serif", lineHeight: 1.6, minHeight: "100vh", padding: "0" }}>
       {/* Header 组件 */}
       <Header user={user} onLanguageChange={handleHeaderLanguageChange} onLogout={handleHeaderLogout} />
-       
 
       {/* 更新提示信息 */}
       {showMessage && <div style={messageStyle}>{updateMessage}</div>}
 
       {/* 账户设置主体 */}
-      <div style={{ padding: "100px 20px 20px 20px", maxWidth: "600px", margin: "0 auto" }}>
-        
-         <br />
-         <br />
-         <br />
-        <div style={{ fontSize:"36px",fontWeight:"bold", textAlign:"left" }}>
-             {/* 返回按钮 */}
-             <div  onClick={() => navigate("/") } style={{ position:"relative",fontSize: "20px",cursor:"pointer"}}>
-                <IoArrowBackCircleOutline style={{position:"absolute",top:"7px",left:"0"}}
-            />
-            
-            <span style={{fontWeight:"normal",marginLeft:"23px"}}>{language === "t_cn" ? "返回" : "Back"}</span>
-            </div>
-
+      <div style={{ padding: "100px 20px 20px 20px", maxWidth: "600px", margin: "0 auto", overflow: "hidden" }}>
+        <br />
+        <br />
+        <br />
+        <div style={{ fontSize: "36px", fontWeight: "bold", textAlign: "left" }}>
+          {/* 返回按钮 */}
+          <div onClick={() => navigate("/")} style={{ position: "relative", fontSize: "20px", cursor: "pointer" }}>
+            <IoArrowBackCircleOutline style={{ position: "absolute", top: "7px", left: "0" }} />
+            <span style={{ fontWeight: "normal", marginLeft: "23px" }}>
+              {language === "t_cn" ? "返回" : "Back"}
+            </span>
+          </div>
           {language === "t_cn" ? "账户设置" : "Account Settings"}
         </div>
-        <p style={{ marginBottom: "10px",fontSize:"18px", textAlign:"left",opacity:"0.6" }}>
+        <p style={{ marginBottom: "10px", fontSize: "18px", textAlign: "left", opacity: "0.6" }}>
           {language === "t_cn" ? "用户信息" : "User Info"}
         </p>
 
@@ -260,28 +274,28 @@ const AccountSettings: React.FC = () => {
               </div>
             </div>
 
-            {/* 更新用户名和语言 */}
-            <div style={{ marginBottom: "20px",textAlign:"left" }}>
+            {/* 更新用户名和邮箱 */}
+            <div style={{ marginBottom: "20px", textAlign: "left" }}>
               <label>{language === "t_cn" ? "用户名:" : "Username:"}</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                style={{ marginLeft: "10px",width:"20%" }}
+                style={{ marginLeft: "10px", width: "20%" }}
               />
-                <div style={{height:"20px"}}></div>
-              <label>{language === "t_cn" ? "语言:" : "Language:"}</label>
-              <select
-                style={{ marginLeft: "10px" }}
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as "t_cn" | "t_kjv")}
+              <div style={{ height: "20px" }}></div>
+              <label>{language === "t_cn" ? "邮箱:" : "Email:"}</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{ marginLeft: "10px", width: "40%" }}
+              />
+              <button
+                className="submitButton"
+                onClick={handleProfileUpdate}
+                style={{ width: "120px", position: "relative", left: "50px", top: "-8px" }}
               >
-                <option value="t_kjv">English</option>
-                <option value="t_cn">中文</option>
-              </select>
-              <button 
-              className="submitButton"
-              onClick={handleProfileUpdate} style={{width: "120px",position:"relative",left:"60px",top:"-8px"}}>
                 {language === "t_cn" ? "更新资料" : "Update"}
               </button>
             </div>

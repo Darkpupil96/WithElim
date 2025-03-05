@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import WithElimLogo2 from "../../public/WithElimLogo2.png";
 
+
+
+
+
 interface HeaderProps {
   user: {
     id: number;
@@ -16,10 +20,12 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ user, onLanguageChange, onLogout }) => {
   const navigate = useNavigate();
   const [showSettingsMenu, setShowSettingsMenu] = useState<boolean>(false);
+  
   const [language, setLanguage] = useState<"t_cn" | "t_kjv">(user ? user.language : "t_kjv");
 
   const handleLanguageChange = (newLang: "t_cn" | "t_kjv") => {
     setLanguage(newLang);
+
     onLanguageChange(newLang);
     setShowSettingsMenu(false);
   };
@@ -50,12 +56,12 @@ const Header: React.FC<HeaderProps> = ({ user, onLanguageChange, onLogout }) => 
       }}
     >
       {/* Logo */}
-      <div style={{ cursor: "pointer" }} onClick={() => navigate("/")}>
+      <div style={{ cursor: "pointer" ,height:"auto"}} onClick={() => navigate("/")}>
         <img src={WithElimLogo2} alt="WithElim" height="100" />
       </div>
 
       {/* 右侧导航 */}
-      <div style={{ position: "fixed", height:"100%",top:"40px",right:"70px" }}>
+      <div style={{ position: "fixed", height:"auto",top:"40px",right:"70px"}}>
         {user ? (
           <img
             src={user.avatar || "https://withelim.com/media/default-avatar.png"}

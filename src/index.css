@@ -1,10 +1,48 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 * {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
  
+}
+textarea {
+  resize: none;
+}
+#root{
+  padding: 0 !important;  
+}
+.prayerVerse:hover{
+  background-color:#6e8180;
+  color:white;
+}
+.my-masonry-grid{
+  width:100%;
+
+}
+.my-masonry-grid_column{
+ width: 100% !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.PrayerCard{
+  width:80% !important;
+  box-shadow: 0 0 10px 0 rgba(0,0,0,0.1);
+  margin:0;
+  box-sizing: border-box;
+}
+
+.prayButton:hover path{
+  fill: #388683;
+
+}
+.IoClose:hover path{
+  fill: #d62828;
+}
+.FaEdit:hover path{
+  fill: #388683;
 }
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -24,11 +62,11 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: #388683;
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: #388683;
 }
 
 body {
