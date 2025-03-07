@@ -3,7 +3,7 @@ import PrayerCard, { Prayer } from "../components/PrayerCard";
 import { useNavigate } from "react-router-dom";
 import Masonry from "react-masonry-css";
 import Header from "../components/Header";
-
+import { IoArrowBackCircleOutline } from "react-icons/io5";
 
 
 interface UserInfo {
@@ -152,7 +152,17 @@ const PrayerPage: React.FC = () => {
     <div style={{ fontFamily: "sans-serif", lineHeight: 1.6, minHeight: "100vh", padding: "0"  }}>
        {/* Header 组件 */}
        <Header user={user} onLanguageChange={handleHeaderLanguageChange} onLogout={handleHeaderLogout} />
-      <h2 style={{paddingTop:"150px"}}>{language==="t_cn"?"公共祷告墙":"Public Prayers wall"}</h2>
+        
+      <h2 style={{paddingTop:"150px"}}>
+        {/* 返回按钮 */}
+        <div onClick={() => navigate("/")} style={{ position: "relative", fontSize: "20px", cursor: "pointer",width:"90px",left:"20px" }}>
+            <IoArrowBackCircleOutline style={{ position: "absolute", top: "7px", left: "0" }} />
+            <span style={{ fontWeight: "normal" }}>
+              {language === "t_cn" ? "返回" : "Back"}
+            </span>
+          </div>
+        {language==="t_cn"?"公共祷告墙":"Public Prayers wall"}</h2>
+      
       <Masonry
         breakpointCols={breakpointColumnsObj}
         className="my-masonry-grid"

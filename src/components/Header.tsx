@@ -1,10 +1,20 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import WithElimLogo2 from "../../public/WithElimLogo2.png";
 
 
 
+//窗口检测宽度
+function useWindowWidth() {
+  const [width, setWidth] = useState(window.innerWidth);
 
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return width;}
 
 interface HeaderProps {
   user: {
@@ -22,7 +32,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLanguageChange, onLogout }) => 
   const [showSettingsMenu, setShowSettingsMenu] = useState<boolean>(false);
   
   const [language, setLanguage] = useState<"t_cn" | "t_kjv">(user ? user.language : "t_kjv");
-
+  const windowWidth = useWindowWidth();
   const handleLanguageChange = (newLang: "t_cn" | "t_kjv") => {
     setLanguage(newLang);
 
@@ -57,18 +67,18 @@ const Header: React.FC<HeaderProps> = ({ user, onLanguageChange, onLogout }) => 
     >
       {/* Logo */}
       <div style={{ cursor: "pointer" ,height:"auto"}} onClick={() => navigate("/")}>
-        <img src={WithElimLogo2} alt="WithElim" height="100" />
+        <img src={WithElimLogo2} alt="WithElim"  height={windowWidth < 1000 ? "70px" : "100px"} />
       </div>
 
       {/* 右侧导航 */}
-      <div style={{ position: "fixed", height:"auto",top:"40px",right:"70px"}}>
+      <div style={{ height:"auto",paddingTop:windowWidth<1000?"-5px":"20px"}}>
         {user ? (
           <img
             src={user.avatar || "https://withelim.com/media/default-avatar.png"}
             alt="avatar"
             style={{
-                width: "50px",
-                height: "50px",
+              width: windowWidth < 1000 ? "40px" : "50px",
+              height: windowWidth < 1000 ? "40px" : "50px",
                 borderRadius: "50%",
                 cursor: "pointer",
                 zIndex: "999"
@@ -76,7 +86,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLanguageChange, onLogout }) => 
             onClick={() => setShowSettingsMenu(!showSettingsMenu)}
           />
         ) : (
-          <button onClick={() => navigate("/login")}>
+          <button onClick={() => navigate("/login")} style={{marginBottom:windowWidth < 1000 ?"30px":"20px"}}>
             {language === "t_cn" ? "登录" : "Login"}
           </button>
         )}

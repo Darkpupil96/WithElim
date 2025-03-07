@@ -1,17 +1,29 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import FriendList from "./FriendList.tsx";
+import SearchBar from "../components/SearchBar.tsx";
 import { FaChevronLeft,FaChevronRight } from "react-icons/fa6";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
 import WithElimLogo2 from "../../public/WithElimLogo2.png";
-
+import { useLocation } from "react-router-dom";
+import { useLayoutEffect } from "react";
 
 
 interface VerseItem {
   verse: number | string;
   text: string;
 }
-
+interface Verse {
+  version: string;
+  b: number;
+  c: number;
+  v: number;
+  t: string;
+}
+interface BibleAppProps {
+  verseSearching: Verse | null;
+  onClearVerseSearching: () => void;
+}
 interface ResultData {
   bookName: string;
   chapterText: string;
@@ -37,16 +49,29 @@ function useWindowWidth() {
 
   return width;
 }
-const BibleApp: React.FC = () => {
+const BibleApp: React.FC<BibleAppProps> = ({ verseSearching,onClearVerseSearching }) => {
   // ==================【状态定义】==================
   const navigate = useNavigate();
-  //更改verses
+  const location = useLocation();
+
+//定位到搜索的内容
+useLayoutEffect(() => {
+  if (location.hash) {
+    const elementId = location.hash.replace("#", "");
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+}, [location.hash]);
+  //检测是否通过搜索更改verses
 
   // 用户信息（登录后从 /api/auth/me 获取）
   const [user, setUser] = useState<UserInfo | null>(null);
 
   // 语言：默认英文（"t_kjv"），如果用户已登录并有 language，则用用户的 language
-  const [language, setLanguage] = useState<"t_kjv" | "t_cn">("t_kjv");
+  const [language, setLanguage] = useState<"t_kjv" | "t_cn">(verseSearching?.version==="t_cn"?"t_cn":"t_kjv");
+
 
   // 用于控制头像点击后设置弹窗是否显示
   const [showSettingsMenu, setShowSettingsMenu] = useState<boolean>(false);
@@ -98,8 +123,14 @@ const BibleApp: React.FC = () => {
   };
 
   // 书卷、章节及经文内容状态
-  const [selectedBook, setSelectedBook] = useState<string>("1");
-  const [selectedChapter, setSelectedChapter] = useState<string>("1");
+  const [selectedBook, setSelectedBook] = useState<string>(
+    verseSearching?.b?.toString() ?? "1"
+  );
+  
+  const [selectedChapter, setSelectedChapter] = useState<string>(
+     verseSearching?.c?.toString() ?? "1"
+  );
+
   const [resultData, setResultData] = useState<ResultData | null>(null);
 
   // ==================【工具函数】==================
@@ -154,82 +185,60 @@ const BibleApp: React.FC = () => {
   
   
 
-  
-  useEffect(() => {
-    // 只有当用户信息加载完成后才调用获取经文的函数
-    if (userFetched) {
-      fetchAndDisplayResult();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userFetched, language, selectedBook, selectedChapter]);
-  useEffect(() => {
-    // 只有在用户已登录且用户信息加载完成时才更新阅读记录
-    if (user && user.id) {
-      // 构造更新阅读记录的 API URL
-      const updateUrl = `https://withelim.com/api/auth/update-reading`;
-      const token = localStorage.getItem("token");
-  
-      // 构造请求体：当前选中的书卷和章节
-      const payload = {
-        reading_book: parseInt(selectedBook, 10),
-        reading_chapter: parseInt(selectedChapter, 10),
-      };
-  
-      fetch(updateUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("阅读进度更新成功:", data);
-        })
-        .catch((err) => {
-          console.error("更新阅读进度失败:", err);
-        });
-    }
-    // 依赖项包括 user、selectedBook 和 selectedChapter
-  }, [user, selectedBook, selectedChapter]);
-  // 获取经文
-  const fetchAndDisplayResult = (): void => {
-    const apiUrl = `https://withelim.com/api/bible?book=${selectedBook}&chapter=${selectedChapter}&v=${language}`;
-    fetch(apiUrl)
-      .then((response) => response.json())
-      .then((data) => {
-        // 拼接每节经文：[verse] text
-        const versesString = data.verses.map((item: VerseItem) => (
-          <p 
-          key={item.verse} 
-          onClick={() => handleVerseClick(item)}
-          style={{ textAlign: "left", width: "60%", paddingLeft: "20%",zIndex: 950,cursor:"pointer" }}>
-            <span style={{ fontSize: "0.6rem" }}>[{item.verse}]</span> <span className="prayerVerse">{item.text}</span>
-          </p>
-        ));
+
+const fetchAndDisplayResult = (): void => {
+  const apiUrl = `https://withelim.com/api/bible?book=${selectedBook}&chapter=${selectedChapter}&v=${language}`;
+  {fetch(apiUrl)
+    .then((response) => response.json())
+    .then((data) => {
+      // 拼接每节经文：[verse] text
+      const versesString = data.verses.map((item: VerseItem) => {
+    
+        // 判断是否为当前选中的经文
         
+        const isSelected = item.text === verseSearching?.t;
+        return (
+          <p
+            key={item.verse}
+            onClick={() => {handleVerseClick(item)}}
+            style={{
+              borderRadius:"5px",
+              padding:"5px",
+              textAlign: "left",
+              width: "60%",
+              marginLeft: "20%",
+              zIndex: 950,
+              cursor: "pointer",
+              backgroundColor: isSelected ? "#6e8180" : "inherit",
+              color: isSelected ? "white" : "inherit",
+            }}
+          >
+            <span style={{ fontSize: "0.6rem" }}>[{item.verse}]</span>{" "}
+            <span className="prayerVerse">{item.text}</span>
+          </p>
+        );
+    });
 
-        // 根据当前语言获取书卷名称
-        const booksMapping = language === "t_cn" ? booksAndChaptersCn : booksAndChaptersEn;
-        const bookNames = Object.keys(booksMapping);
-        const bookIndex = parseInt(selectedBook, 10) - 1;
-        const selectedBookName = bookNames[bookIndex] || "";
+      // 根据当前语言获取书卷名称
+      const booksMapping = language === "t_cn" ? booksAndChaptersCn : booksAndChaptersEn;
+      const bookNames = Object.keys(booksMapping);
+      const bookIndex = parseInt(selectedBook, 10) - 1;
+      const selectedBookName = bookNames[bookIndex] || "";
 
-        // 构造章节显示文本
-        const chapterText =
-          language === "t_cn"
-            ? "第" + convertToChineseNumeral(parseInt(selectedChapter, 10)) + "章"
-            : "Chapter " + selectedChapter;
+      // 构造章节显示文本
+      const chapterText =
+        language === "t_cn"
+          ? "第" + convertToChineseNumeral(parseInt(selectedChapter, 10)) + "章"
+          : "Chapter " + selectedChapter;
 
-        setResultData({
-          bookName: selectedBookName,
-          chapterText,
-          verses: versesString,
-        });
-      })
-      .catch((error) => console.error("请求错误:", error));
-  };
+      setResultData({
+        bookName: selectedBookName,
+        chapterText,
+        verses: versesString,
+      });
+    })
+    .catch((error) => console.error("请求错误:", error));
+}};
 
 
 //prayer 提交
@@ -264,7 +273,7 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
       const payload = {
         title: prayerTitle,
         content: prayerText,
-        is_private: false,
+        is_private: isPrivate,
         verses: [
           {
             version: language,
@@ -304,14 +313,47 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
   }, []);
 
   useEffect(() => {
-    // 每次 language / selectedBook / selectedChapter 改变时，刷新经文
-    fetchAndDisplayResult();
+    // 只有当用户信息加载完成后才调用获取经文的函数
+    if (userFetched) {
+      fetchAndDisplayResult();
+    }
+     // 只有在用户已登录且用户信息加载完成时才更新阅读记录
+    if (!verseSearching&&user && user.id) {
+      // 构造更新阅读记录的 API URL
+      const updateUrl = `https://withelim.com/api/auth/update-reading`;
+      const token = localStorage.getItem("token");
+  
+      // 构造请求体：当前选中的书卷和章节
+      const payload = {
+        reading_book: parseInt(selectedBook, 10),
+        reading_chapter: parseInt(selectedChapter, 10),
+      };
+  
+      fetch(updateUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("阅读进度更新成功:", data);
+        })
+        .catch((err) => {
+          console.error("更新阅读进度失败:", err);
+        });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, selectedBook, selectedChapter]);
+  }, [userFetched, language, selectedBook, selectedChapter]);
+
+
 
   // ==================【事件处理】==================
   // 切换到上一章
   const handlePrevChapter = (): void => {
+    onClearVerseSearching();
     const currentChapter = parseInt(selectedChapter, 10);
     // 当前书卷号是 1-indexed，转换为 0-indexed
     const currentBookIndex = parseInt(selectedBook, 10) - 1;
@@ -338,6 +380,7 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
 
   // 切换到下一章
   const handleNextChapter = (): void => {
+    onClearVerseSearching();
     const currentChapter = parseInt(selectedChapter, 10);
     const booksMapping = language === "t_cn" ? booksAndChaptersCn : booksAndChaptersEn;
     const bookNames = Object.keys(booksMapping);
@@ -354,6 +397,75 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
       setSelectedChapter((currentChapter + 1).toString());
     }
   };
+
+  // 当点击 VerseSearch 卡片时，更新状态，并跳转到主页定位到对应章节
+  const handleSearchResultSelect = (verse: Verse) => {
+
+   
+    if (verse.version === "t_cn" || verse.version === "t_kjv") {
+      setLanguage(verse.version);
+    } else {
+      // 给个兜底逻辑，例如默认英文
+      setLanguage("t_kjv");
+    };
+    setSelectedBook(String(verse.b));
+    setSelectedChapter(String(verse.c));
+    const verseKey = `${verse.b}-${verse.c}-${verse.v}`;
+
+       // 构造更新阅读记录的 API URL
+       const updateUrl = `https://withelim.com/api/auth/update-reading`;
+       const token = localStorage.getItem("token");
+   
+       if (token){// 构造请求体：当前选中的书卷和章节
+       const payload = {
+         reading_book: verse.b,
+         reading_chapter: verse.c,
+       };
+   
+       fetch(updateUrl, {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+           Authorization: `Bearer ${token}`,
+         },
+         body: JSON.stringify(payload),
+       })
+         .then((res) => res.json())
+         .then((data) => {
+           console.log("阅读进度更新成功:", data);
+          // navigate(`/#${verseKey}`);
+          
+           localStorage.setItem("searchingResultVerse", verseKey);
+          // fetchAndDisplayResult();
+          
+             
+    
+         })
+         .catch((err) => {
+           console.error("更新阅读进度失败:", err);
+         });}
+ 
+        
+
+    
+    
+  };
+
+
+  
+ // 当 verseSearching 变化时触发
+ useEffect(() => {
+  if (verseSearching) {
+    const timer = setTimeout(() => {
+      console.log("传入 verseSearching:", verseSearching);
+      handleSearchResultSelect(verseSearching);
+    }, 300); // 300 毫秒延时，根据需要调整
+
+    // 清除上一次的定时器
+    return () => clearTimeout(timer);
+  }
+}, [verseSearching]);
+
 
   // 退出登录
   const handleLogout = () => {
@@ -405,6 +517,7 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
 
   // ==================【JSX】==================
   return (
+
     <div style={{ fontFamily: "sans-serif", lineHeight: 1.6, minHeight: "100vh",padding:"0 0 0 0" }} >
       {/* 顶部导航栏 */}
       <header 
@@ -438,8 +551,25 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
         <div
           style={{ cursor: "pointer", fontSize: "20px",fontWeight: "bold",height:"auto" }}
         >
-                <img onClick={() => navigate("/")} src={WithElimLogo2} alt="WithElim" height="100px"/>
+                   <img
+      onClick={() => navigate("/")}
+      src={WithElimLogo2}
+      alt="WithElim"
+      height={windowWidth < 1000 ? "70px" : "100px"}
+      style={{ cursor: "pointer" , paddingTop:windowWidth<1000?"15px":"0"}}
+    />
         </div>
+         {/**公共祷告墙进入*/}
+ <span className="prayerWallButton" style={{
+          cursor: "pointer",
+          fontSize: "16px",
+          fontWeight: "bold",
+ }} onClick={()=>{navigate("/Prayers")}}>
+  {language==="t_cn"?" 祷告墙":" Prayer wall"}</span>
+           {/**Search bar*/}
+    
+           <SearchBar placeholder={language === "t_cn" ? "请输入关键词搜索经文" : "Enter keyword to search verses"} />
+
         {!user&&  (windowWidth >= 1638)&&// 未登录状态
 
 (<div style={{display: "flex", flexDirection: "row",justifyContent: "space-between",width:"170px",height:"5%",position:"fixed",right:"10vw",paddingTop:"24px" }}> 
@@ -460,8 +590,9 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
  </div>
 )
  }
+
         {/* 右上角头像及设置菜单 */}
-        <div style={{ position: "fixed", height:"auto",top:"40px",right:"70px" }}>
+        <div style={{ height:"auto",paddingTop:"20px" }}>
           
           <img 
             src={
@@ -471,8 +602,8 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
             }
             alt="avatar"
             style={{
-              width: "50px",
-              height: "50px",
+              width:windowWidth<1000?"40px":"50px",
+              height:windowWidth<1000?"40px":"50px",
               borderRadius: "50%",
               cursor: "pointer",
               zIndex: "999"
@@ -483,7 +614,7 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
 
           {showSettingsMenu && (
             <div // 点击空白处关闭设置菜单
-            onClick={() => {setShowSettingsMenu(false);console.log("clicked")}}
+            onClick={() => {setShowSettingsMenu(false);}}
             style={{
               position: "fixed",
               top: 0,
@@ -509,6 +640,7 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
                 zIndex: 999,
               }}
             >
+              
               {/* 未登录状态 */}
               {!user && (
                 <div style={{ padding: "10px", textAlign: "left" }}>
@@ -659,6 +791,7 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
             </option>
           ))}
         </select>
+
         </div>
 
       </header>
@@ -671,7 +804,18 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
         }}>
         {/* Prayer 弹窗 */}
       {prayerOpen && (
-        <div
+       <div onClick={() => setPrayerOpen(false)}
+       style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        zIndex: 955,
+        background: "transparent", // 或半透明背景色
+      }}
+       >
+        <div  onClick={(e) => e.stopPropagation()} 
           style={{
             position: "fixed",
             top: "50%",
@@ -739,6 +883,7 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
             </button>
           </div>
         </div>
+        </div>
       )}
 
         {/* 显示返回结果 */}
@@ -767,7 +912,7 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
             position: "fixed",
             bottom: "50vh",
             left:windowWidth<1596?"5vw":"20vw",
-            zIndex: 980,
+            zIndex: 900,
             marginRight: "10px",width:"50px",height:"50px",borderRadius:"50%",padding:"0 0 0 0" }}>
         <FaChevronLeft/>
           </button>
@@ -775,7 +920,7 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
                         position: "fixed",
                         bottom: "50vh",
                         right:windowWidth<1596?"5vw":"20vw",
-                        zIndex: 999,
+                        zIndex: 900,
             marginRight: "10px",width:"50px",height:"50px",borderRadius:"50%",padding:"0 0 0 0"  }}>
           <FaChevronRight/>
           </button>
@@ -881,6 +1026,7 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
 )}
       </div>
     </div>
+
   );
 };
 

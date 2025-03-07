@@ -41,8 +41,26 @@ textarea {
 .IoClose:hover path{
   fill: #d62828;
 }
+.hoverRed:hover {
+  fill: #d62828;
+}
+.hoverGreen:hover {
+  fill: #388683;
+}
 .FaEdit:hover path{
   fill: #388683;
+}
+.prayerWallButton{
+padding:10px;
+margin-top: 27px;
+  color:#313131;
+  border-radius: 8px;
+  line-height: 20px;
+  height:20px;
+}
+.prayerWallButton:hover{
+ color: #000000;
+ background-color: #f3f3f3;
 }
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
