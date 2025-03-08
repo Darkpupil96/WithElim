@@ -91,8 +91,6 @@ const VerseSearch: React.FC<VerseSearchProps> = ({ onSelectVerse }) => {
     noResult: language === "t_cn" ? "暂无结果" : "No results",
     loginAlert: language === "t_cn" ? "请先登录！" : "Please log in first!",
     back: language === "t_cn" ? "返回" : "Back",
-    bookLabel: language === "t_cn" ? "书卷" : "Book",
-    chapterLabel: language === "t_cn" ? "章" : "Chapter",
     verseLabel: language === "t_cn" ? "节" : "Verse"
   };
 
@@ -206,7 +204,7 @@ const VerseSearch: React.FC<VerseSearchProps> = ({ onSelectVerse }) => {
     : Object.keys(booksAndChaptersEn);
 
   return (
-    <div style={{ maxWidth: 600, margin: "0 auto" }}>
+    <div style={{ width: "50vw", minHeight:"100vw", margin: "0 auto" }}>
       <h2>{texts.title}</h2>
       <div style={{ marginBottom: 16 }}>
         <input
@@ -214,18 +212,19 @@ const VerseSearch: React.FC<VerseSearchProps> = ({ onSelectVerse }) => {
           placeholder={texts.placeholder}
           value={searchWord}
           onChange={(e) => setSearchWord(e.target.value)}
-          style={{ width: "70%", marginRight: 8 }}
+          style={{ width: "90%",height:"30px",borderRadius:"7px" }}
         />
         <br />
         <br />
         <button onClick={() => handleSearch(searchWord)} disabled={loading}>
           {texts.button}
         </button>
-        <button style={{ marginLeft: "20px" }} onClick={() => navigate("/")}>
+   
+        <button style={{ marginLeft: "30px" }} onClick={() => navigate("/")}>
           {texts.back}
         </button>
       </div>
-      <div>
+      <div style={{width:"100%"}}>
         {verses.length === 0 ? (
           <p>{texts.noResult}</p>
         ) : (
@@ -240,17 +239,20 @@ const VerseSearch: React.FC<VerseSearchProps> = ({ onSelectVerse }) => {
                 key={groupKey}
                 style={{
                   border: "1px solid #ddd",
+                  boxSizing:"border-box",
                   borderRadius: "8px",
-                  padding: "12px",
+                  padding: "15px",
                   marginBottom: "12px",
-                  cursor: "pointer"
+                  cursor: "pointer",
+                  width:"100%",
                 }}
                 onClick={() => toggleGroup(groupKey)}
               >
                 <div>
                   <strong>
-                    {texts.bookLabel}: {bookName} &nbsp;&nbsp;
-                    {texts.chapterLabel}: {chapter}
+                    {language === "t_cn"
+                      ? `${bookName} 第${chapter}章`
+                      : `${bookName} chapter ${chapter}`}
                   </strong>
                 </div>
                 {isExpanded && (
@@ -268,7 +270,9 @@ const VerseSearch: React.FC<VerseSearchProps> = ({ onSelectVerse }) => {
                       >
                         <div>
                           <strong>
-                            {texts.verseLabel}: {verse.v}
+                             {language === "t_cn"?
+                           `第${verse.v}${texts.verseLabel}` :`${texts.verseLabel}: ${verse.v}`
+                             }
                           </strong>
                         </div>
                         <div style={{ marginTop: "4px" }}>
@@ -288,4 +292,3 @@ const VerseSearch: React.FC<VerseSearchProps> = ({ onSelectVerse }) => {
 };
 
 export default VerseSearch;
-

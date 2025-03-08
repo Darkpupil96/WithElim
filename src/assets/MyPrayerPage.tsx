@@ -115,26 +115,22 @@ const fetchPrayers = async () => {
   };
   const handleHeaderLanguageChange = (newLang: "t_cn" | "t_kjv") => {
     setLanguage(newLang);
-    if (user) {
-      const payload = { ...user, language: newLang };
-      fetch("https://withelim.com/api/auth/update", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
+    fetch("https://withelim.com/api/auth/update", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ language: newLang }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Language updated via header", data);
+        if (data.user) {
+          setUser(data.user);
+        }
       })
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("Language updated via header", data);
-          // 如果后端返回更新后的用户数据，则更新本地状态
-          if (data.user) {
-            setUser(data.user);
-          }
-        })
-        .catch((err) => console.error("更新语言失败", err));
-    }
+      .catch((err) => console.error("更新语言失败", err));
   };
 
   // Header 中退出登录回调

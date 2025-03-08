@@ -38,6 +38,18 @@ textarea {
   fill: #388683;
 
 }
+.eye{
+  color:#000000;
+  border:none !important;
+  transition:none !important;
+  outline:none !important;
+  opacity: 0.6;
+  width:20px;
+}
+
+.eye:hover {
+ color:#000000 !important;
+}
 .IoClose:hover path{
   fill: #d62828;
 }
@@ -52,7 +64,7 @@ textarea {
 }
 .prayerWallButton{
 padding:10px;
-margin-top: 27px;
+margin-top: 23px;
   color:#313131;
   border-radius: 8px;
   line-height: 20px;
@@ -77,7 +89,11 @@ margin-top: 27px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
+input{
+  height:25px;
+  border-radius: 5px;
+  border:1px,solid,gray;
+}
 a {
   font-weight: 500;
   color: #388683;
@@ -87,6 +103,7 @@ a:hover {
   color: #388683;
 }
 
+label{opacity: 0.6;}
 body {
   margin: 0;
   display: flex;

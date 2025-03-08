@@ -199,6 +199,7 @@ const fetchAndDisplayResult = (): void => {
         const isSelected = item.text === verseSearching?.t;
         return (
           <p
+          id={isSelected ? "highlighted-verse" : undefined}
             key={item.verse}
             onClick={() => {handleVerseClick(item)}}
             style={{
@@ -236,7 +237,15 @@ const fetchAndDisplayResult = (): void => {
         chapterText,
         verses: versesString,
       });
-    })
+      
+  // 等待内容渲染完成后再滚动
+  setTimeout(() => {
+    const el = document.getElementById("highlighted-verse");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, 100);
+})
     .catch((error) => console.error("请求错误:", error));
 }};
 
@@ -310,11 +319,12 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
   useEffect(() => {
     // 初次加载时先检查是否有登录用户
     fetchCurrentUser();
+    
   }, []);
 
   useEffect(() => {
     // 只有当用户信息加载完成后才调用获取经文的函数
-    if (userFetched) {
+    if (!verseSearching||userFetched) {
       fetchAndDisplayResult();
     }
      // 只有在用户已登录且用户信息加载完成时才更新阅读记录
@@ -488,19 +498,16 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...user,
-          language: newLang,
-        }),
+        body: JSON.stringify({ language: newLang }),
       })
         .then((res) => res.json())
         .then((data) => {
-          console.log(data);
-          // 这里也可以更新本地的 user 状态
-          setUser((prev) => (prev ? { ...prev, language: newLang } : null));
+          console.log("Language updated via header", data);
+          if (data.user) {
+            setUser(data.user);
+          }
         })
-        .catch((err) => console.error("更新语言失败", err));
-    }
+        .catch((err) => console.error("更新语言失败", err));}
   };
 
   // ==================【渲染逻辑】==================
@@ -556,7 +563,7 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
       src={WithElimLogo2}
       alt="WithElim"
       height={windowWidth < 1000 ? "70px" : "100px"}
-      style={{ cursor: "pointer" , paddingTop:windowWidth<1000?"15px":"0"}}
+      style={{ cursor: "pointer" , paddingTop:windowWidth<1000?"10px":"0"}}
     />
         </div>
          {/**公共祷告墙进入*/}
@@ -572,7 +579,7 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
 
         {!user&&  (windowWidth >= 1638)&&// 未登录状态
 
-(<div style={{display: "flex", flexDirection: "row",justifyContent: "space-between",width:"170px",height:"5%",position:"fixed",right:"10vw",paddingTop:"24px" }}> 
+(<div style={{display: "flex", flexDirection: "row",justifyContent: "space-between",width:"170px",height:"5%",position:"fixed",right:"20vw",paddingTop:"24px" }}> 
 <button
   onClick={() =>
     navigate("/login", { state: { isRegistering: false,language } })
@@ -825,7 +832,8 @@ const [isPrivate, setIsPrivate] = useState<boolean>(false);
             padding: "20px",
             boxShadow: "0px 0px 10px rgba(0,0,0,0.1)",
             zIndex: 1000,
-            width: "90%",
+            width: "70%",
+            borderRadius:"10px",
             maxWidth: "400px",
           }}
         >

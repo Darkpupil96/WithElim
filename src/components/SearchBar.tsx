@@ -63,6 +63,9 @@ interface SearchBarProps {
             width: "20vw",
             padding: "8px",
             fontSize: "16px",
+            borderRadius:"10px",
+            borderBlockColor:"grey",
+            borderWidth:"0.8px"
 
           }}
         />
