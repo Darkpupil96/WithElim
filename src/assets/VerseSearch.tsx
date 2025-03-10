@@ -177,7 +177,9 @@ const VerseSearch: React.FC<VerseSearchProps> = ({ onSelectVerse }) => {
     if (onSelectVerse) {
       onSelectVerse(verse);
     }
-    navigate("/");
+    const hash = `#${verse?.b}-${verse?.c}-${verse?.v}`;
+    // 使用 navigate 时带上 hash
+    navigate(`/${hash}`);
   };
 
   // 切换组展开/收起状态
@@ -204,7 +206,7 @@ const VerseSearch: React.FC<VerseSearchProps> = ({ onSelectVerse }) => {
     : Object.keys(booksAndChaptersEn);
 
   return (
-    <div style={{ width: "50vw", minHeight:"100vw", margin: "0 auto" }}>
+    <div style={{ width: "50vw", minHeight:"100vw", margin: "30vh auto" }}>
       <h2>{texts.title}</h2>
       <div style={{ marginBottom: 16 }}>
         <input

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, ChangeEvent, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { IoClose } from "react-icons/io5";
 import { FaEdit } from "react-icons/fa";
 import { FaCross } from "react-icons/fa";
@@ -17,9 +18,15 @@ export interface Prayer {
   content: string;
   is_private: boolean;
   created_at: string;
-  username: string;
+
+  user: {
+    id: number;       // ✅ 用户 ID
+    username: string; // ✅ 用户名
+  };
+  
   verses: Verse[];
 }
+
 
 interface Comment {
   id: number;
@@ -27,6 +34,8 @@ interface Comment {
   created_at: string;
   username: string;
   avatar?: string;
+  user_id:number;
+
 }
 
 interface PrayerCardProps {
@@ -35,6 +44,11 @@ interface PrayerCardProps {
 }
 
 const PrayerCard: React.FC<PrayerCardProps> = ({ prayer, currentUser }) => {
+  if (!prayer?.user) {
+    console.error("❌ Error: prayer.user is undefined", prayer);
+    return null; // 避免渲染错误的组件
+  }
+
   const [hasLiked, setHasLiked] = useState<boolean>(false);
   const [likeCount, setLikeCount] = useState<number>(0);
   const [showCommentInput, setShowCommentInput] = useState<boolean>(false);
@@ -56,6 +70,12 @@ const PrayerCard: React.FC<PrayerCardProps> = ({ prayer, currentUser }) => {
   const prayButtonRef = useRef<HTMLButtonElement>(null);
 
   const userLang = currentUser?.language || "t_kjv";
+  const navigate = useNavigate();
+ // ✅ 处理跳转到用户界面
+ const handleUserClick = () => {
+  if (prayer?.user?.id) {
+  navigate(`/user/${prayer?.user.id}`);}
+};
 
   // 获取点赞状态
   useEffect(() => {
@@ -101,9 +121,12 @@ const PrayerCard: React.FC<PrayerCardProps> = ({ prayer, currentUser }) => {
   };
 
   useEffect(() => {
-    fetchLikeCount();
-    fetchComments();
-  }, [prayer.id]);
+    if (currentUser) {
+      fetchLikeCount();
+      fetchComments();
+    }
+  }, [currentUser, prayer.id]);
+
 
   // 针对每个评论调用接口判断是否可删除，并更新 commentPermissions
   useEffect(() => {
@@ -323,7 +346,7 @@ const PrayerCard: React.FC<PrayerCardProps> = ({ prayer, currentUser }) => {
         backgroundColor: "#fff",
       }}
     >
-      {currentUser && currentUser.username === prayer.username && !isEditing && (
+      {currentUser && currentUser.username === prayer.user.username && !isEditing && (
         <>
           <span
             style={{ paddingTop: "8px", cursor: "pointer", position: "absolute", right: "20px", top: "7px" }}
@@ -369,12 +392,12 @@ const PrayerCard: React.FC<PrayerCardProps> = ({ prayer, currentUser }) => {
         <div>
           <h3>{prayer.title}</h3>
           <p>{prayer.content}</p>
-          <p style={{ fontSize: "12px", color: "#888" }}>
-            {prayer.username} - {new Date(prayer.created_at).toLocaleString()}
+          <p style={{ fontSize: "12px", color: "#888"}}  >
+            <span style={{ cursor:"pointer",fontWeight:"bold",color:"#388683",textDecoration:"underline"}} onClick={handleUserClick}>{prayer.user.username}</span> - {new Date(prayer.created_at).toLocaleString()}
           </p>
-          <p>{userLang === "t_cn" ? "关联经文" : "Related scriptures"}</p>
+          <p style={{fontSize:"13px",fontWeight:"bold"}}>{userLang === "t_cn" ? "关联经文" : "Related scriptures"}</p>
           {prayer.verses && prayer.verses.length > 0 && (
-            <div style={{ marginTop: "8px", fontSize: "14px", color: "#555" }}>
+            <div style={{ marginTop: "3px", fontSize: "14px", color: "#555" }}>
               {prayer.verses.map((v, index) => (
                 <p key={index}>
                   [{v.v}] {v.text}
@@ -386,12 +409,12 @@ const PrayerCard: React.FC<PrayerCardProps> = ({ prayer, currentUser }) => {
             <span ref={prayButtonRef} style={{ fontSize: "14px", paddingTop: "8px", cursor: "pointer" }}>
               <FaCross className="prayButton" size="20px" onClick={handlePray} />{likeCount}
             </span>
-            <button onClick={() => setShowCommentInput(!showCommentInput)}>
+            <button style={{fontSize:"13px"}} onClick={() => setShowCommentInput(!showCommentInput)}>
               {showCommentInput ? (userLang === "t_cn" ? "取消" : "Cancel") : (userLang === "t_cn" ? "回复" : "Reply")}
             </button>
           </div>
           {showCommentInput && (
-            <div style={{ marginTop: "8px", marginLeft: "10%", width: "80%" }}>
+            <div style={{ marginTop: "8px", marginLeft: "10%", width: "80%"}}>
               <textarea
                 value={commentText}
                 onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setCommentText(e.target.value)}
@@ -407,8 +430,8 @@ const PrayerCard: React.FC<PrayerCardProps> = ({ prayer, currentUser }) => {
           {comments.length > 0 && (
             <div style={{ marginTop: "8px", borderTop: "1px solid #eee", paddingTop: "20px" }}>
               {comments.map((comment) => (
-                <div key={comment.id} style={{ marginBottom: "10px" }}>
-                  <strong>{comment.username}</strong>:{" "}
+                <div key={comment.id} style={{ marginBottom: "10px",fontSize:"13px" }}>
+                  <span style={{ cursor:"pointer",fontWeight:"bold",color:"#388683",textDecoration:"underline"}} onClick={()=>navigate(`/user/${comment.user_id}`)}>{comment.username}</span>:{" "}
                   {editingCommentId === comment.id ? (
                     <>
                       <textarea

@@ -7,6 +7,7 @@ import AccountSettings from "./assets/AccountSettings";
 import PrayerPage from "./assets/PrayerPage";
 import MyPrayerPage from "./assets/MyPrayerPage";
 import VerseSearch from "./assets/VerseSearch";
+import UserPublicProfile from "./assets/UserPublicProfile";
 import "./App.css";
 
 // 定义 Verse 类型（如果还没有导出的话）
@@ -45,7 +46,10 @@ function App() {
           path="/verseSearch"
           element={<VerseSearch onSelectVerse={handleSelectVerse} />}
         />
+        <Route path="/user/:userId" element={<UserPublicProfile />} />
       </Routes>
+
+
 
   );
 }

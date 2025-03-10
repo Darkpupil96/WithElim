@@ -48,7 +48,10 @@ const PrayerPage: React.FC = () => {
       setLoading(false);
     }
   };
-
+  useEffect(() => {
+    console.log("Updated prayers:", prayers);
+  }, [prayers]);
+  
   useEffect(() => {
     fetchUser();
   }, []);
@@ -175,3 +178,4 @@ const PrayerPage: React.FC = () => {
 };
 
 export default PrayerPage;
+

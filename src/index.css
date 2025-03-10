@@ -7,6 +7,9 @@
   user-select: none;
  
 }
+ul::-webkit-scrollbar {
+  display: none;
+}
 textarea {
   resize: none;
 }
@@ -28,7 +31,7 @@ textarea {
   align-items: center;
 }
 .PrayerCard{
-  width:80% !important;
+  width:300px !important;
   box-shadow: 0 0 10px 0 rgba(0,0,0,0.1);
   margin:0;
   box-sizing: border-box;
@@ -52,6 +55,23 @@ textarea {
 }
 .IoClose:hover path{
   fill: #d62828;
+}
+
+.notes-icon {
+  
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 900px) {
+  .notes-icon {
+    color: #388683;
+    position: absolute;
+    left: 10vw;
+    width: 30px;
+    height: 30px;
+
+  }
 }
 .hoverRed:hover {
   fill: #d62828;

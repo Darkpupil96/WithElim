@@ -9,15 +9,15 @@ interface SearchBarProps {
   const [searchWord, setSearchWord] = useState("");
   const navigate = useNavigate();
 
-  // 用于检测窗口宽度是否小于 1000px
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1000);
+  // 用于检测窗口宽度是否小于 1100px
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1100);
   // 控制在移动端是否显示输入框
   const [showInput, setShowInput] = useState(false);
 
   // 监听窗口 resize 更新 isMobile 状态
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 1000);
+      setIsMobile(window.innerWidth < 1100);
     };
 
     window.addEventListener("resize", handleResize);

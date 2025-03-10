@@ -67,18 +67,24 @@ const Header: React.FC<HeaderProps> = ({ user, onLanguageChange, onLogout }) => 
     >
       {/* Logo */}
       <div style={{ cursor: "pointer" ,height:"auto"}} onClick={() => navigate("/")}>
-        <img src={WithElimLogo2} alt="WithElim"  height={windowWidth < 1000 ? "70px" : "100px"} />
+      <img
+      onClick={() => navigate("/")}
+      src={WithElimLogo2}
+      alt="WithElim"
+      height={windowWidth < 1100 ? "70px" : "100px"}
+      style={{ cursor: "pointer" , paddingTop:windowWidth<1100?"10px":"0"}}
+    />
       </div>
 
       {/* 右侧导航 */}
-      <div style={{ height:"auto",paddingTop:windowWidth<1000?"-5px":"20px"}}>
+      <div style={{ height:"auto",paddingTop:windowWidth<1100?"-5px":"20px"}}>
         {user ? (
           <img
             src={user.avatar || "https://withelim.com/media/default-avatar.png"}
             alt="avatar"
             style={{
-              width: windowWidth < 1000 ? "40px" : "50px",
-              height: windowWidth < 1000 ? "40px" : "50px",
+              width: windowWidth < 1100 ? "40px" : "50px",
+              height: windowWidth < 1100 ? "40px" : "50px",
                 borderRadius: "50%",
                 cursor: "pointer",
                 zIndex: "999"
@@ -86,7 +92,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLanguageChange, onLogout }) => 
             onClick={() => setShowSettingsMenu(!showSettingsMenu)}
           />
         ) : (
-          <button onClick={() => navigate("/login")} style={{marginBottom:windowWidth < 1000 ?"30px":"20px"}}>
+          <button onClick={() => navigate("/login")} style={{marginBottom:windowWidth < 1100 ?"30px":"20px"}}>
             {language === "t_cn" ? "登录" : "Login"}
           </button>
         )}
