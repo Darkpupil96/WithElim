@@ -46,23 +46,30 @@ const BibleApp: React.FC<BibleAppProps> = ({ verseSearching, onClearVerseSearchi
   const location = useLocation();
 
   // 定位到搜索的内容
-useLayoutEffect(() => {
-  if (location.hash) {
-    const elementId = location.hash.slice(1);
-    setTimeout(() => {
-      const element = document.getElementById(elementId);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
-        element.style.transition = "background-color 0.5s ease";
-        element.style.backgroundColor = "#6e8180"; // 高亮
-        element.style.color = "white";
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+
+  useLayoutEffect(() => {
+    if (location.hash) {
+      const elementId = location.hash.slice(1);
+      setHighlightedId(elementId);
+      setTimeout(() => {
+        const element = document.getElementById(elementId);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
         onClearVerseSearching?.();
-      }
-    }, 500);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+       
+      }, 500);
+      setTimeout(() => {
+      setHighlightedId(null);
+    }, 3000);
+      
+    }
+  }, [location.hash, verseSearching]);
+  
 
-  }
-}, [location.hash,verseSearching]);
-
+  
   // 用户信息
   const [user, setUser] = useState<UserInfo | null>(null);
   // 语言：默认英文
@@ -119,9 +126,11 @@ useLayoutEffect(() => {
   const [selectedBook, setSelectedBook] = useState<string>(
     verseSearching?.b?.toString() ?? "1"
   );
+  
   const [selectedChapter, setSelectedChapter] = useState<string>(
     verseSearching?.c?.toString() ?? "1"
   );
+
   // 存储从 API 获取的经文数据
   const [bibleData, setBibleData] = useState<any>(null);
 
@@ -148,7 +157,11 @@ useLayoutEffect(() => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        // 访客模式下也标记为完成用户信息获取（即使没有用户数据）
+        setUserFetched(true);
+        return;
+      }
       const response = await fetch("https://withelim.com/api/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -174,12 +187,6 @@ useLayoutEffect(() => {
       .then((response) => response.json())
       .then((data) => {
         setBibleData(data);
-        setTimeout(() => {
-          const el = document.getElementById("highlighted-verse");
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }, 100);
       })
       .catch((error) => console.error("请求错误:", error));
   };
@@ -272,7 +279,7 @@ useLayoutEffect(() => {
   }, []);
 
   useEffect(() => {
-    if (!verseSearching || userFetched) {
+    if (!verseSearching || userFetched || (!user && userFetched === false)) {
       fetchAndDisplayResult();
     }
     if (!verseSearching && user && user.id) {
@@ -841,11 +848,8 @@ const remaining = sortedVerses.slice(5);
                               borderRadius: "5px",
                               cursor: "pointer",
                               // 如果是搜索到的经文，也可以给予特殊背景
-                              backgroundColor
-                              : isSelected
-                              ? "#6e8180"
-                              : "inherit",
-                            color: isSelected ? "white" : "inherit",
+                              backgroundColor:highlightedId === verseId || isSelected ? "#6e8180" : "inherit",
+                              color: highlightedId === verseId || isSelected ? "white" : "inherit",
                               textAlign:'left',
                               marginTop:"10px"
                             }}
